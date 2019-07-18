@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from matplotlib.collections import QuadMesh
 import seaborn as sn
+import os
 
 
 def get_new_fig(fn, figsize=[9,9]):
@@ -123,7 +124,7 @@ def insert_totals(df_cm):
     #print ('\ndf_cm:\n', df_cm, '\n\b\n')
 #
 
-def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', fz=11,
+def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", path_to_save=None, fmt='.2f', fz=11,
       lw=0.5, cbar=False, figsize=[8,8], show_null_values=0, pred_val_axis='y'):
     """
       print conf matrix with default layout (like matlab)
@@ -200,10 +201,13 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', f
     ax.set_ylabel(ylbl)
     plt.tight_layout()  #set layout slim
     plt.show()
+    if path_to_save:
+        plt.savefig(os.path.join(path_to_save, 'confusion_matrix.png'))
 #
 
-def plot_confusion_matrix_from_data(y_test, predictions, columns=None, annot=True, cmap="Oranges",
+def plot_confusion_matrix_from_data(y_test, predictions, path_to_save=None, columns=None, annot=True, cmap="Oranges",
       fmt='.2f', fz=11, lw=0.5, cbar=False, figsize=[8,8], show_null_values=0, pred_val_axis='lin'):
+
     """
         plot confusion matrix function with y_test (actual values) and predictions (predic),
         whitout a confusion matrix yet
@@ -220,12 +224,12 @@ def plot_confusion_matrix_from_data(y_test, predictions, columns=None, annot=Tru
         columns = ['class %s' %(i) for i in list(ascii_uppercase)[0:len(np.unique(y_test))]]
 
     confm = confusion_matrix(y_test, predictions)
-    cmap = 'Oranges';
+#     cmap = 'Oranges';
     fz = 11;
     figsize=[9,9];
     show_null_values = 2
     df_cm = DataFrame(confm, index=columns, columns=columns)
-    pretty_plot_confusion_matrix(df_cm, fz=fz, cmap=cmap, figsize=figsize, show_null_values=show_null_values, pred_val_axis=pred_val_axis)
+    pretty_plot_confusion_matrix(df_cm, fz=fz, cmap=cmap, path_to_save=path_to_save, figsize=figsize, show_null_values=show_null_values, pred_val_axis=pred_val_axis)
 #
 
 

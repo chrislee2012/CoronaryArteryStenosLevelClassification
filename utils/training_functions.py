@@ -59,11 +59,11 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, path_to_sa
             running_recall = 0.0
             # Iterate over data.
             # ind = 0
-            for inputs, labels in tqdm(data_loaders[phase]):
+            for inputs, labels, _, _, _ in tqdm(data_loaders[phase]):
                 # ind +=1 
 
-                inputs = inputs.cuda()#.to(device)
-                labels = labels.cuda()#(device)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -107,7 +107,7 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, path_to_sa
 
             epoch_loss = running_loss / len(data_loaders[phase])
 
-            epoch_acc = running_corrects.double() / (len(data_loaders[phase]) * 64)
+            epoch_acc = running_corrects.double() / (len(data_loaders[phase]) * 16)
             epoch_f1 = running_f1_score / len(data_loaders[phase])
             epoch_precision = running_precision / len(data_loaders[phase])
             epoch_recall = running_recall / len(data_loaders[phase])

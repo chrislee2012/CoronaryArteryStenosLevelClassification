@@ -11,9 +11,9 @@ import cv2
 
 class LAD_MPR_Loader(Dataset):
 
-    def __init__(self, path_to_csv, root_dir, transform=None):
+    def __init__(self, path_to_csv, root_dir, dataset_partition, transform=None):
         self.labels = pd.read_csv(path_to_csv)
-        self.dataset_partition_name = path_to_csv.split('/')[-1].split('.')[0]
+        self.dataset_partition_name = dataset_partition # train test val
         self.root_dir = root_dir
         self.data_transformations = transforms.Compose([
                 transforms.ToTensor(),
@@ -23,14 +23,16 @@ class LAD_MPR_Loader(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        artery_section_name = self._artery_secton_name_strip(self.labels.iloc[idx, 2].split('_')[0])
-        patient_folder_name = self.labels.iloc[idx, 1]
-        image_name = self.labels.iloc[idx, 2]
-        y = torch.tensor(self.labels.iloc[idx,3], dtype=torch.long)
+        # print(self.labels.iloc[idx]['PATIENT_NAME'])
+        artery_section_name = self._artery_secton_name_strip(self.labels.iloc[idx]['IMG_NAME'].split('_')[0])
+        patient_folder_name = self.labels.iloc[idx]['PATIENT_NAME']
+        image_name = self.labels.iloc[idx]['IMG_NAME']
+        y = torch.tensor(self.labels.iloc[idx]['LABEL'], dtype=torch.long)
+        stenosis_score = self.labels.iloc[idx]['STENOSIS_SCORE']
         img_path = os.path.join(self.root_dir, self.dataset_partition_name, patient_folder_name, artery_section_name, image_name)
         X =cv2.imread(img_path)# cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
         X = self.data_transformations(X)
-        return X, y
+        return X, y, stenosis_score, patient_folder_name, self.labels.iloc[idx]['IMG_NAME']
 
     def _artery_secton_name_strip(self, section_name):
         if 'D-2' in section_name:
@@ -43,10 +45,10 @@ class LAD_MPR_Loader(Dataset):
 
 
 if __name__ == '__main__':
-    path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/train.csv'
+    path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/train_without_25.csv'
     path_to_data = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/'
-    data_loader = LAD_MPR_Loader(path_to_csv, path_to_data)
-    print(len(data_loader) )
-    for img, label in data_loader:
-        # print(img.shape, label)
+    dataset_partition ='train'
+    data_loader = LAD_MPR_Loader(path_to_csv, path_to_data, dataset_partition)
+    for img, label, a in data_loader:
+        print(label, a)
         break
