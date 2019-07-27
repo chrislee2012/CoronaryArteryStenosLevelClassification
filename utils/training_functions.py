@@ -107,7 +107,7 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, path_to_sa
 
             epoch_loss = running_loss / len(data_loaders[phase])
 
-            epoch_acc = running_corrects.double() / (len(data_loaders[phase]) * 16)
+            epoch_acc = running_corrects.double() / (len(data_loaders[phase]) * 64)
             epoch_f1 = running_f1_score / len(data_loaders[phase])
             epoch_precision = running_precision / len(data_loaders[phase])
             epoch_recall = running_recall / len(data_loaders[phase])

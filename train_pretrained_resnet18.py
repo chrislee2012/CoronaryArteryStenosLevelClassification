@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 from dataloaders.binary_data_loader import LAD_MPR_Loader
 from dataloaders.sampler import ImbalancedDatasetSampler
+from dataloaders.augmentation import light_aug, medium_aug, strong_aug
 
 from utils.training_functions import *
 
@@ -24,10 +25,12 @@ warnings.filterwarnings("ignore")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # train part
-train_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/train_without_25.csv'
+train_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/train_without_25_text_removed.csv'
 train_path_to_data = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/'
 dataset_partition = 'train'
-lad_train = LAD_MPR_Loader(train_path_to_csv, train_path_to_data, dataset_partition)
+
+# augmenatator = medium_aug()
+lad_train = LAD_MPR_Loader(train_path_to_csv, train_path_to_data, dataset_partition)#, augmenatator)
 train_loader = torch.utils.data.DataLoader(lad_train,
                                              batch_size=64, 
                                              # shuffle=True,
@@ -35,7 +38,7 @@ train_loader = torch.utils.data.DataLoader(lad_train,
 
                                             )
 # val part
-val_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/val_without_25.csv'
+val_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/val_without_25_text_removed.csv'
 val_path_to_data = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/'
 dataset_partition = 'val'
 lad_val = LAD_MPR_Loader(val_path_to_csv, val_path_to_data, dataset_partition)
@@ -57,10 +60,10 @@ model.fc = nn.Linear(num_ftrs, 2)
 
 model.to(device)
 
-# weights = [0.62566531, 2.48941134]
-# class_weights = torch.FloatTensor(weights).cuda()
-# criterion = nn.CrossEntropyLoss(weight=class_weights)
-criterion = nn.CrossEntropyLoss()
+weights = [1, 1.2]
+class_weights = torch.FloatTensor(weights).cuda()
+criterion = nn.CrossEntropyLoss(weight=class_weights)
+# criterion = nn.CrossEntropyLoss()
 
 optimizer_conv = optim.Adam(model.parameters(), lr=0.001)
 
@@ -70,8 +73,8 @@ data_loaders = {'train': train_loader, 'val': val_loader}
 model = train_model(
                     model, data_loaders, criterion, 
                     optimizer_conv, exp_lr_scheduler,
-                    'weights/pretrained_resnet18_balanced_data_without_25.pth', 
-                    'pretrained_resnet50_balanced_data_without_25',
+                    'weights/pretrained_resnet18_balanced_data_without_25_text_removed_weight_on_positive_class.pth', 
+                    'pretrained_resnet18_balanced_data_without_25_text_removed_weight_on_positive_class',
                     device,
                      num_epochs=20
                      )

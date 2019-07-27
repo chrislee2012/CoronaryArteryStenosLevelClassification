@@ -73,8 +73,9 @@ def show_estimate_model(calculated_metrics_dict, path_to_save=None, color_palett
     plt.ylabel('Metric\'s value', fontsize=30)
     plt.show()
     if path_to_save:
-        plt.savefig(os.path.join(path_to_save, 'metrics_of_the_model.png'))
-    
+#         plt.savefig(os.path.join(path_to_save, 'metrics_of_the_model.png'))
+          plt.savefig(path_to_save + '/metrics_of_the_model.png')
+
 def plot_roc_curve(fpr, tpr, path_to_save=None):
     plt.figure(figsize=(10,10))
     plt.plot(fpr, tpr, color='orange', label='ROC')
@@ -128,7 +129,7 @@ def save_plots_all_info_per_dataset(model, data_loader, dataset_part, path_to_sa
 
     data = {'PATIENT_NAME': all_patient_names, 'IMG_NAME': all_img_names, 'PREDS': all_preds, 'PREDS_PROBAS': all_probas, 'LABELS': all_labels, 'STENOSIS_SCORE': all_stenosis_scores}
     df_to_save = pd.DataFrame(data)
-    df_to_save.to_csv(os.path.join(path_to_save_figures, dataset_part, dataset_part+'.csv'))
+    df_to_save.to_csv(os.path.join(path_to_save_figures, dataset_part+'.csv'))
 
     # Calculate all metrics
     fpr, tpr, thresholds = roc_curve(all_labels,  [x[1] for x in all_probas])
@@ -147,10 +148,12 @@ def save_plots_all_info_per_dataset(model, data_loader, dataset_part, path_to_sa
     plot_roc_curve(fpr, tpr, path_to_save_figures)
 
 if __name__ == '__main__':
-    PATH_TO_MODEL_WEIGHTS = '/home/petryshak/CoronaryArteryPlaqueIdentification/weights/pretrained_resnet18_balanced_data_without_25_text_removed.pth'
-    model_name = PATH_TO_MODEL_WEIGHTS.split('/')[-1].strip('.pth')
+    PATH_TO_MODEL_WEIGHTS = '/home/petryshak/CoronaryArteryPlaqueIdentification/weights/pretrained_resnet18_balanced_data.pth'
+
     PATH_TO_DATASET = 'data/binary_classification_only_lad'
-    PATH_TO_SAVE_GRAPHS = os.path.join('results_graphs/', model_name)
+
+    model_name = PATH_TO_MODEL_WEIGHTS.split('/')[-1].strip('.pth')
+    PATH_TO_SAVE_GRAPHS = os.path.join('prediction_results/', model_name)
 
     if not os.path.exists(PATH_TO_SAVE_GRAPHS):
         os.mkdir(PATH_TO_SAVE_GRAPHS)
@@ -158,6 +161,8 @@ if __name__ == '__main__':
     # Create model
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = models.resnet18(pretrained=True)
+    # model = models.resnet50(pretrained=True)
+
     # model = models.resnext50_32x4d(pretrained=True, progress=True)
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 2)
@@ -167,9 +172,9 @@ if __name__ == '__main__':
     # Predict over all datasets and visualize model's metrics
     datasets_partitions = ['train', 'val', 'test']
 
-    # csv_files = ['train.csv', 'val.csv', 'test.csv']
+    csv_files = ['train.csv', 'val.csv', 'test.csv']
     # csv_files = ['train_without_25.csv', 'val_without_25.csv', 'test_without_25.csv']
-    csv_files = ['train_without_25_text_removed.csv', 'val_without_25_text_removed.csv', 'test_without_25_text_removed.csv']
+    # csv_files = ['train_without_25_text_removed.csv', 'val_without_25_text_removed.csv', 'test_without_25_text_removed.csv']
 
     for i in tqdm(range(len(csv_files))):
         lad_loader = create_dataloader(os.path.join(PATH_TO_DATASET, csv_files[i]),

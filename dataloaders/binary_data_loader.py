@@ -11,10 +11,11 @@ import cv2
 
 class LAD_MPR_Loader(Dataset):
 
-    def __init__(self, path_to_csv, root_dir, dataset_partition, transform=None):
+    def __init__(self, path_to_csv, root_dir, dataset_partition, augment=None):
         self.labels = pd.read_csv(path_to_csv)
         self.dataset_partition_name = dataset_partition # train test val
         self.root_dir = root_dir
+        self.augment = augment
         self.data_transformations = transforms.Compose([
                 transforms.ToTensor(),
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -31,6 +32,8 @@ class LAD_MPR_Loader(Dataset):
         stenosis_score = self.labels.iloc[idx]['STENOSIS_SCORE']
         img_path = os.path.join(self.root_dir, self.dataset_partition_name, patient_folder_name, artery_section_name, image_name)
         X =cv2.imread(img_path)# cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
+        if self.augment:
+            X = self.augment(image=X)['image']
         X = self.data_transformations(X)
         return X, y, stenosis_score, patient_folder_name, self.labels.iloc[idx]['IMG_NAME']
 

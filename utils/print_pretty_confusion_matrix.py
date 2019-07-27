@@ -67,12 +67,12 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
         text_del.append(oText)
 
         #text to ADD
-        font_prop = fm.FontProperties(weight='bold', size=fz)
+        font_prop = fm.FontProperties(size=fz) # weight='bold', 
         text_kwargs = dict(color='w', ha="center", va="center", gid='sum', fontproperties=font_prop)
         lis_txt = ['%d'%(cell_val), per_ok_s, '%.2f%%'%(per_err)]
         lis_kwa = [text_kwargs]
-        dic = text_kwargs.copy(); dic['color'] = 'g'; lis_kwa.append(dic);
-        dic = text_kwargs.copy(); dic['color'] = 'r'; lis_kwa.append(dic);
+        dic = text_kwargs.copy(); dic['color'] = '#82b74b'; lis_kwa.append(dic);
+        dic = text_kwargs.copy(); dic['color'] = '#c94c4c'; lis_kwa.append(dic);
         lis_pos = [(oText._x, oText._y-0.3), (oText._x, oText._y), (oText._x, oText._y+0.3)]
         for i in range(len(lis_txt)):
             newText = dict(x=lis_pos[i][0], y=lis_pos[i][1], text=lis_txt[i], kw=lis_kwa[i])
@@ -105,7 +105,7 @@ def configcell_text_and_colors(array_df, lin, col, oText, facecolors, posi, fz, 
             # set background color in the diagonal to blue
             facecolors[posi] = [0.35, 0.8, 0.55, 1.0]
         else:
-            oText.set_color('r')
+            oText.set_color('#c94c4c')
 
     return text_add, text_del
 #
@@ -157,8 +157,8 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", path_to_save
                     cbar=cbar, cmap=cmap, linecolor='w', fmt=fmt)
 
     #set ticklabels rotation
-    ax.set_xticklabels(ax.get_xticklabels(), rotation = 45, fontsize = 10)
-    ax.set_yticklabels(ax.get_yticklabels(), rotation = 25, fontsize = 10)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation = 20, fontsize = 16)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation = 20, fontsize = 16)
 
     # Turn off all the ticks
     for t in ax.xaxis.get_major_ticks():
@@ -196,9 +196,9 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", path_to_save
         ax.text(item['x'], item['y'], item['text'], **item['kw'])
 
     #titles and legends
-    ax.set_title('Confusion matrix')
-    ax.set_xlabel(xlbl)
-    ax.set_ylabel(ylbl)
+#     ax.set_title('Confusion matrix')
+    ax.set_xlabel(xlbl, fontsize=20)
+    ax.set_ylabel(ylbl, fontsize=20)
     plt.tight_layout()  #set layout slim
     plt.show()
     if path_to_save:
@@ -206,7 +206,7 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", path_to_save
 #
 
 def plot_confusion_matrix_from_data(y_test, predictions, path_to_save=None, columns=None, annot=True, cmap="Oranges",
-      fmt='.2f', fz=11, lw=0.5, cbar=False, figsize=[8,8], show_null_values=0, pred_val_axis='lin'):
+      fmt='.2f', fz=16, lw=0.5, cbar=False, figsize=[8,8], show_null_values=0, pred_val_axis='lin'):
 
     """
         plot confusion matrix function with y_test (actual values) and predictions (predic),
@@ -225,8 +225,8 @@ def plot_confusion_matrix_from_data(y_test, predictions, path_to_save=None, colu
 
     confm = confusion_matrix(y_test, predictions)
 #     cmap = 'Oranges';
-    fz = 11;
-    figsize=[9,9];
+#     fz = 11;
+#     figsize=[9,9];
     show_null_values = 2
     df_cm = DataFrame(confm, index=columns, columns=columns)
     pretty_plot_confusion_matrix(df_cm, fz=fz, cmap=cmap, path_to_save=path_to_save, figsize=figsize, show_null_values=show_null_values, pred_val_axis=pred_val_axis)
@@ -239,14 +239,16 @@ def plot_confusion_matrix_from_data(y_test, predictions, path_to_save=None, colu
 #
 def _test_cm():
     #test function with confusion matrix done
-    array = np.array( [[13,  0,  1,  0,  2,  0],
-                       [ 0, 50,  2,  0, 10,  0],
-                       [ 0, 13, 16,  0,  0,  3],
-                       [ 0,  0,  0, 13,  1,  0],
-                       [ 0, 40,  0,  1, 15,  0],
-                       [ 0,  0,  0,  0,  0, 20]])
+#     array = np.array( [[13,  0,  1,  0,  2,  0],
+#                        [ 0, 50,  2,  0, 10,  0],
+#                        [ 0, 13, 16,  0,  0,  3],
+#                        [ 0,  0,  0, 13,  1,  0],
+#                        [ 0, 40,  0,  1, 15,  0],
+#                        [ 0,  0,  0,  0,  0, 20]])
+    array = np.array([[1, 2],
+                     [4, 5]])
     #get pandas dataframe
-    df_cm = DataFrame(array, index=range(1,7), columns=range(1,7))
+    df_cm = DataFrame(array, index=range(1,3), columns=range(1,3))
     #colormap: see this and choose your more dear
     cmap = 'PuRd'
     pretty_plot_confusion_matrix(df_cm, cmap=cmap)
@@ -276,8 +278,7 @@ def _test_data_class():
     figsize = [9,9];
     if(len(y_test) > 10):
         fz=9; figsize=[14,14];
-    plot_confusion_matrix_from_data(y_test, predic, columns,
-      annot, cmap, fmt, fz, lw, cbar, figsize, show_null_values, pred_val_axis)
+    plot_confusion_matrix_from_data(y_test, predic, columns, annot, cmap, fmt, fz, lw, cbar, figsize, show_null_values, pred_val_axis)
 #
 
 
