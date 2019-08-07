@@ -11,7 +11,7 @@ import copy
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from dataloaders.binary_data_loader import LAD_MPR_Loader
+from dataloaders.binary_data_loader import Binary_MPR_Loader
 from dataloaders.sampler import ImbalancedDatasetSampler
 from dataloaders.augmentation import light_aug, medium_aug, strong_aug
 
@@ -24,13 +24,28 @@ warnings.filterwarnings("ignore")
 # Load data
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# train part
-train_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/train_without_25_text_removed.csv'
-train_path_to_data = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/'
-dataset_partition = 'train'
 
-# augmenatator = medium_aug()
-lad_train = LAD_MPR_Loader(train_path_to_csv, train_path_to_data, dataset_partition)#, augmenatator)
+# Define transform and aug
+transforms = transforms.Compose([
+                transforms.ToTensor(),
+                # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            ])
+augmenatator = medium_aug()
+
+ROOT_DIR = 'data/binary_classification_all_branches/'
+train_csv_name = 'train_labels_with_normal_and_minimal_stenosis_level.xlsx'
+val_csv_name = 'val_labels_with_normal_and_minimal_stenosis_level.xlsx'
+
+# train part
+dataset_partition = 'train'
+lad_train = Binary_MPR_Loader(
+                                ROOT_DIR, 
+                                train_csv_name, 
+                                dataset_partition,
+                                # augment=augmenatator, 
+                                transformations=transforms
+                              )
+
 train_loader = torch.utils.data.DataLoader(lad_train,
                                              batch_size=64, 
                                              # shuffle=True,
@@ -38,16 +53,19 @@ train_loader = torch.utils.data.DataLoader(lad_train,
 
                                             )
 # val part
-val_path_to_csv = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/val_without_25_text_removed.csv'
-val_path_to_data = '/home/petryshak/CoronaryArteryPlaqueIdentification/data/binary_classification_only_lad/'
 dataset_partition = 'val'
-lad_val = LAD_MPR_Loader(val_path_to_csv, val_path_to_data, dataset_partition)
+lad_val = Binary_MPR_Loader(
+                            ROOT_DIR, 
+                            val_csv_name, 
+                            dataset_partition,
+                            transformations=transforms
+                            )
 val_loader = torch.utils.data.DataLoader(lad_val,
                                              batch_size=64,
                                              shuffle=False
                                             )
-# Define the model
 
+# Define the model
 model = torchvision.models.resnet18(pretrained=True)
 # model = torchvision.models.resnext50_32x4d(pretrained=True, progress=True)
 # model = torchvision.models.resnet50(pretrained=True)
@@ -60,10 +78,10 @@ model.fc = nn.Linear(num_ftrs, 2)
 
 model.to(device)
 
-weights = [1, 1.2]
-class_weights = torch.FloatTensor(weights).cuda()
-criterion = nn.CrossEntropyLoss(weight=class_weights)
-# criterion = nn.CrossEntropyLoss()
+# weights = [1, 1.2]
+# class_weights = torch.FloatTensor(weights).cuda()
+# criterion = nn.CrossEntropyLoss(weight=class_weights)
+criterion = nn.CrossEntropyLoss()
 
 optimizer_conv = optim.Adam(model.parameters(), lr=0.001)
 
@@ -73,8 +91,8 @@ data_loaders = {'train': train_loader, 'val': val_loader}
 model = train_model(
                     model, data_loaders, criterion, 
                     optimizer_conv, exp_lr_scheduler,
-                    'weights/pretrained_resnet18_balanced_data_without_25_text_removed_weight_on_positive_class.pth', 
-                    'pretrained_resnet18_balanced_data_without_25_text_removed_weight_on_positive_class',
+                    'weighs_all_branches/minimum_stenosis_level.pth', 
+                    'minimum_stenosis_level',
                     device,
                      num_epochs=20
                      )

@@ -59,7 +59,7 @@ def train_model(model, data_loaders, criterion, optimizer, scheduler, path_to_sa
             running_recall = 0.0
             # Iterate over data.
             # ind = 0
-            for inputs, labels, _, _, _ in tqdm(data_loaders[phase]):
+            for inputs, labels in tqdm(data_loaders[phase]):
                 # ind +=1 
 
                 inputs = inputs.to(device)
