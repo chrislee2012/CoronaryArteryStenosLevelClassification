@@ -11,9 +11,9 @@ import copy
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from dataloaders.binary_data_loader import Binary_MPR_Loader
-from dataloaders.sampler import ImbalancedDatasetSampler
-from dataloaders.augmentation import light_aug, medium_aug, strong_aug
+from datasets.binary_data_loader import Binary_MPR_Loader
+from datasets.sampler import ImbalancedDatasetSampler
+from datasets.augmentation import light_aug, medium_aug, strong_aug
 
 from utils.training_functions import *
 
