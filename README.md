@@ -8,7 +8,7 @@ The dataset has the following structure:
 ```
 |-- RootDir
 |     |-- Train
-|           |-- train_labels_file.xlsx/.csv
+|           |-- labels.csv/.xlsx
 |           |-- imgs
 |                 |--  patient_1
 |                       |-- LAD
@@ -16,7 +16,7 @@ The dataset has the following structure:
 |                       ...
 |                 ...
 |     |-- Val
-|           |-- val_labels_file.xlsx/.csv
+|           |-- labels.csv/.xlsx
 |           |-- imgs
 |                 |--  val_patient_1
 |                       |-- LAD
@@ -24,7 +24,7 @@ The dataset has the following structure:
 |                       ...
 |                 ...
 |     |-- Test
-|           |-- test_labels_file.xlsx/.csv
+|           |-- labels.csv/.xlsx
 |           |-- imgs
 |                 |--  test_patient_1
 |                       |-- LAD
