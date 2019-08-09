@@ -85,11 +85,16 @@ class Trainer:
             metrics = self.evaluator.state.metrics
             # TODO: Improve code style
 
+            metrics_strs = []
+            for name in metrics:
+                metrics_strs.append("Avg {}: {:.2f}".format(name, metrics[name]))
+            
             avg_accuracy = metrics['accuracy']
             avg_nll = metrics['nll']
             avg_f1 = metrics['f1']
             avg_precision = metrics['precision']
             avg_recall = metrics['recall']
+
             tqdm.write(
                 "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg precision: {:.2f} Avg recall: {:.2f} Avg f1: {:.2f} Avg loss: {:.2f}"
                     .format(engine.state.epoch, avg_accuracy, avg_precision, avg_recall, avg_f1, avg_nll))
