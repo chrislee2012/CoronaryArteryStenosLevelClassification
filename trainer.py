@@ -21,9 +21,11 @@ class Trainer:
         self.__create_trainer()
 
     def __load_model(self):
+        # TODO: add model loading
         self.model = models.resnet18(pretrained=True)
 
     def __load_optimizer(self):
+        # TODO: add optimizator
         self.optimizer = Adam(self.model.parameters(), lr=0.001)
 
     def __load_metrics(self):
@@ -42,8 +44,9 @@ class Trainer:
             transforms.ToTensor(),
             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-        self.train_loader = DataLoader(MPR_Dataset("data/", partition="train", config=self.config["data"]["filters"], transform=transform))
-        self.val_loader = DataLoader(MPR_Dataset("data/", partition="train", config=self.config["data"]["filters"], transform=transform))
+
+        self.train_loader = DataLoader(MPR_Dataset(self.config["root_dir"], partition="train", config=self.config["data"]["filters"], transform=transform))
+        self.val_loader = DataLoader(MPR_Dataset(self.config["root_dir"], partition="train", config=self.config["data"]["filters"], transform=transform))
 
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
