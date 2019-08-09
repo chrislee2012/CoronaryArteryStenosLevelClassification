@@ -33,6 +33,7 @@ transforms = transforms.Compose([
 augmenatator = medium_aug()
 
 ROOT_DIR = 'data/binary_classification_all_branches/'
+SPECIFIC_ARTERY_SECTION = 'LAD'
 train_csv_name = 'train_labels_with_normal_and_minimal_stenosis_level.xlsx'
 val_csv_name = 'val_labels_with_normal_and_minimal_stenosis_level.xlsx'
 
@@ -42,7 +43,8 @@ lad_train = Binary_MPR_Loader(
                                 ROOT_DIR, 
                                 train_csv_name, 
                                 dataset_partition,
-                                # augment=augmenatator, 
+                                specific_artery_section=SPECIFIC_ARTERY_SECTION,
+                                augment=augmenatator, 
                                 transformations=transforms
                               )
 
@@ -58,6 +60,7 @@ lad_val = Binary_MPR_Loader(
                             ROOT_DIR, 
                             val_csv_name, 
                             dataset_partition,
+                            specific_artery_section=SPECIFIC_ARTERY_SECTION,
                             transformations=transforms
                             )
 val_loader = torch.utils.data.DataLoader(lad_val,
@@ -91,8 +94,8 @@ data_loaders = {'train': train_loader, 'val': val_loader}
 model = train_model(
                     model, data_loaders, criterion, 
                     optimizer_conv, exp_lr_scheduler,
-                    'weighs_all_branches/minimum_stenosis_level.pth', 
-                    'minimum_stenosis_level',
+                    'weights_all_branches/minimum_stenosis_level_only_lad.pth', 
+                    'minimum_stenosis_level_only_lad',
                     device,
                      num_epochs=20
                      )

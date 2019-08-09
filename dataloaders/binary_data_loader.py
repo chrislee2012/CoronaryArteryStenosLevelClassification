@@ -11,10 +11,12 @@ import cv2
 
 class Binary_MPR_Loader(Dataset):
 
-    def __init__(self, root_dir, csv_name, dataset_partition, sample_each_nth_mpr_image=3, augment=None, transformations=None):
+    def __init__(self, root_dir, csv_name, dataset_partition, sample_each_nth_mpr_image=3, 
+                    specific_artery_section=None, augment=None, transformations=None):
         self.labels = pd.read_excel(os.path.join(root_dir, dataset_partition, csv_name))
         self._sampe_nth_mpr_image(sample_each_nth_mpr_image)
-
+        if specific_artery_section:
+            self._get_specific_artery(specific_artery_section)
         self.dataset_partition_name = dataset_partition # train test val
         self.root_dir = root_dir
         self.augment = augment
@@ -44,6 +46,14 @@ class Binary_MPR_Loader(Dataset):
     def _sampe_nth_mpr_image(self, n_th):
         self.labels = self.labels[self.labels['MPR_VIEWPOINT_INDEX'] % n_th == 0]
 
+    def _get_specific_artery(self, artery_name):
+        if artery_name == 'LAD':
+            # self.labels = self.labels[self.labels['ARTERY_SECTION'].isin(['LAD', 'D-1', 'D-2','D-3'])]
+
+            # self.labels = self.labels[self.labels['STENOSIS_SCORE'].isin(['NORMAL', '<25%', '25%'])]
+
+            self.labels['LABEL'][~self.labels['STENOSIS_SCORE'].isin(['NORMAL'])] = 1
+
 
 if __name__ == '__main__':
     path_to_csv = 'train_labels_with_normal_and_minimal_stenosis_level.xlsx'
@@ -53,8 +63,11 @@ if __name__ == '__main__':
                 transforms.ToTensor(),
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
-    data_loader = Binary_MPR_Loader(root_dir, path_to_csv, dataset_partition, transformations=transforms)
+    data_loader = Binary_MPR_Loader(root_dir, path_to_csv, dataset_partition, specific_artery_section='LAD', transformations=transforms)
 
-    for img, labels in data_loader:
-        print(labels, img.shape)
-        break
+    print(data_loader.labels.head())
+
+    # print(len(data_loader))
+    # for img, labels in data_loader:
+    #     print(labels, img.shape)
+    #     break
