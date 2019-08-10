@@ -11,7 +11,7 @@ import cv2
 
 
 class MPR_Dataset(Dataset):
-    LABELS_FILENAME = "labels.xlsx"
+    LABELS_FILENAME = "labels.csv"
 
     ARTERY_COLUMN = "ARTERY_SECTION"
     VIEWPOINT_INDEX_COLUMN = "MPR_VIEWPOINT_INDEX"
@@ -23,33 +23,32 @@ class MPR_Dataset(Dataset):
         self.root_dir = root_dir
         self.partition = partition
         self.config = config
-        self.df = pd.read_excel(os.path.join(root_dir, partition, self.LABELS_FILENAME))
+        self.df = pd.read_csv(os.path.join(root_dir, partition, self.LABELS_FILENAME))
         self.__filter()
         self.__find_labels()
         self.transform = transform
 
     def __find_labels(self):
-        # TODO: make labels with apply pandas
-        pass
+        mapper = {}
+        for group, values in self.config['groups'].items():
+            for value in values:
+                mapper[value] = group
+        self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: mapper[x]).tolist()
 
     def __filter(self):
         df = self.df
-        self.df = df[(df[self.ARTERY_COLUMN].isin(self.config["arteries"])) &
-                     (df[self.VIEWPOINT_INDEX_COLUMN] % self.config["viewpoint_index_step"] == 0)]
+        self.df = df[(df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
+                     (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)]
 
     def __len__(self):
         return len(self.df)
-
-    def __class(self, stenosis_scores):
-        # TODO: find class
-        pass
 
     def __getitem__(self, idx):
         info = self.df.iloc[idx]
         path = os.path.join(self.root_dir, self.partition, info[self.IMG_PATH_COLUMN])
         artery = info[self.ARTERY_COLUMN]
         stenosis_scores = info[self.STENOSIS_SCORE_COLUMN]
-        y = self.__class(stenosis_scores)
+        y = self.labels[idx]
         X = cv2.imread(path)
         if transform:
             X = self.transform(X)
@@ -68,8 +67,3 @@ if __name__ == '__main__':
     # for img, labels in data_loader:
     #     print(labels, img.shape)
     #     break
-    config = {
-        "arteries": ["LAD"],
-        "viewpoint_index_step": 3
-    }
-    dataloader = Binary_MPR_Loader("../data/", tranform=transform, config=config)

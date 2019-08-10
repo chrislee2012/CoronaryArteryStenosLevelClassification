@@ -2,51 +2,79 @@ import torch
 from torchvision import models, transforms
 import torch.nn.functional as F
 from torch.optim import Adam
-from ignite.metrics import Accuracy, Loss, Precision, Recall
+from ignite.metrics import Accuracy, Loss, Precision, Recall, MetricsLambda
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from datasets.mpr_dataset import MPR_Dataset
+from datasets.sampler import ImbalancedDatasetSampler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import inspect
+import importlib
+import os
+import yaml
 
 class Trainer:
     def __init__(self, config):
         self.config = config
+
+        os.makedirs(self.config['experiments_path'], exist_ok=True)
+        self.id = len(os.listdir(self.config['experiments_path'])) + 1
+        self.path = os.path.join(self.config['experiments_path'], "exp{}".format(self.id))
+        os.makedirs(self.path, exist_ok=True)
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        self.__save_config()
         self.__load_model()
         self.__load_optimizer()
-        self.__load_metrics()
         self.__load_loaders()
+        self.__load_metrics()
         self.__create_pbar()
         self.__create_evaluator()
         self.__create_trainer()
 
+    def __module_mapping(self, module_name):
+        mapping = {}
+        for name, obj in inspect.getmembers(importlib.import_module(module_name), inspect.isclass):
+            mapping[name] = obj
+        return mapping
+
+    def __save_config(self):
+        config_path = os.path.join(self.path, "config.yaml")
+        with open(config_path, 'w') as f:
+            yaml.dump(self.config, f, default_flow_style=False)
+
     def __load_model(self):
-        # TODO: add model loading
-        self.model = models.resnet18(pretrained=True)
+        mapping = self.__module_mapping('models')
+        self.config['model']['parameters']['n_classes'] = len(self.config['data']['groups'])
+        self.model = mapping[self.config['model']['name']](**self.config['model']['parameters'])
 
     def __load_optimizer(self):
-        # TODO: add optimizator
-        self.optimizer = Adam(self.model.parameters(), lr=0.001)
+        mapping = self.__module_mapping('torch.optim')
+        self.optimizer = mapping[self.config['optimizer']['name']](self.model.parameters(), **self.config['optimizer']['parameters'])
+
 
     def __load_metrics(self):
         precision = Precision(average=False)
         recall = Recall(average=False)
-        F1 = (precision * recall * 2 / (precision + recall)).mean()
+        F1 = precision * recall * 2 / (precision + recall + 1e-20)
+        F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
         self.metrics = {'accuracy': Accuracy(),
                         "f1": F1,
                         "precision": precision.mean(),
                         "recall": recall.mean(),
-                        'nll': Loss(F.cross_entropy)}
+                        'loss': Loss(F.cross_entropy)}
 
     def __load_loaders(self):
         transform = transforms.Compose([
             transforms.ToTensor(),
             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-
-        self.train_loader = DataLoader(MPR_Dataset(self.config["root_dir"], partition="train", config=self.config["data"]["filters"], transform=transform))
-        self.val_loader = DataLoader(MPR_Dataset(self.config["root_dir"], partition="train", config=self.config["data"]["filters"], transform=transform))
+        root_dir = self.config["data"]["root_dir"]
+        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
+        self.train_loader = DataLoader(train_dataset, sampler=ImbalancedDatasetSampler(train_dataset), batch_size=self.config["dataloader"]["batch_size"])
+        self.val_loader = DataLoader(MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False, batch_size=64)
 
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
@@ -71,41 +99,23 @@ class Trainer:
             self.pbar.refresh()
             self.evaluator.run(self.train_loader)
             metrics = self.evaluator.state.metrics
-            # TODO: Improve code style
-            avg_accuracy = metrics['accuracy']
-            avg_nll = metrics['nll']
-            avg_f1 = metrics['f1']
-            avg_precision = metrics['precision']
-            avg_recall = metrics['recall']
-            tqdm.write(
-                "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg precision: {:.2f} Avg recall: {:.2f} Avg f1: {:.2f} Avg loss: {:.2f} "
-                    .format(engine.state.epoch, avg_accuracy, avg_precision, avg_recall, avg_f1, avg_nll)
-            )
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+            tqdm.write("Training Results - Epoch: {} {}".format(engine.state.epoch, results))
 
         @self.trainer.on(Events.EPOCH_COMPLETED)
         def log_validation_results(engine):
             self.evaluator.run(self.val_loader)
             metrics = self.evaluator.state.metrics
-            # TODO: Improve code style
-
-            metrics_strs = []
-            for name in metrics:
-                metrics_strs.append("Avg {}: {:.2f}".format(name, metrics[name]))
-            
-            avg_accuracy = metrics['accuracy']
-            avg_nll = metrics['nll']
-            avg_f1 = metrics['f1']
-            avg_precision = metrics['precision']
-            avg_recall = metrics['recall']
-
-            tqdm.write(
-                "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg precision: {:.2f} Avg recall: {:.2f} Avg f1: {:.2f} Avg loss: {:.2f}"
-                    .format(engine.state.epoch, avg_accuracy, avg_precision, avg_recall, avg_f1, avg_nll))
-
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+            tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
             self.pbar.n = self.pbar.last_print_n = 0
+
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
+
+if __name__ == "__main__":
+    pass
