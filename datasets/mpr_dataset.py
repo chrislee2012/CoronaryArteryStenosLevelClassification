@@ -1,4 +1,7 @@
 from __future__ import print_function, division
+
+from ast import literal_eval
+
 import os
 import torch
 import pandas as pd
@@ -11,7 +14,7 @@ import cv2
 
 
 class MPR_Dataset(Dataset):
-    LABELS_FILENAME = "labels.csv"
+    LABELS_FILENAME = "new_labels.csv"
 
     ARTERY_COLUMN = "ARTERY_SECTION"
     VIEWPOINT_INDEX_COLUMN = "MPR_VIEWPOINT_INDEX"
@@ -23,22 +26,23 @@ class MPR_Dataset(Dataset):
         self.root_dir = root_dir
         self.partition = partition
         self.config = config
-        self.df = pd.read_csv(os.path.join(root_dir, partition, self.LABELS_FILENAME))
-        self.__filter()
+        self.__load_data()
         self.__find_labels()
         self.transform = transform
+
+    def __load_data(self):
+        df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
+        df = df[(df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
+           (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)]
+        df[self.STENOSIS_SCORE_COLUMN] = df[self.STENOSIS_SCORE_COLUMN].apply(literal_eval)
+        self.df = df
 
     def __find_labels(self):
         mapper = {}
         for group, values in self.config['groups'].items():
             for value in values:
                 mapper[value] = group
-        self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: mapper[x]).tolist()
-
-    def __filter(self):
-        df = self.df
-        self.df = df[(df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
-                     (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)]
+        self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x])).tolist()
 
     def __len__(self):
         return len(self.df)
@@ -56,13 +60,13 @@ class MPR_Dataset(Dataset):
 
 if __name__ == '__main__':
     # path_to_csv = 'labels.xlsx'
-    # root_dir = '../data/binary_classification_all_branches/'
-    # dataset_partition ='train'
+    root_dir = '../data/binary_classification_all_branches/'
+    dataset_partition = 'train'
     transform = transforms.Compose([
                 transforms.ToTensor(),
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
-    # data_loader = Binary_MPR_Loader(root_dir, path_to_csv, dataset_partition, transformations=transforms)
+    data_loader = MPR_Dataset(root_dir, dataset_partition, transform=transform)
     #
     # for img, labels in data_loader:
     #     print(labels, img.shape)
