@@ -1,21 +1,27 @@
-import torch
-from torchvision import transforms
-import torch.nn.functional as F
-from ignite.metrics import Accuracy, Loss, Precision, Recall, MetricsLambda
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from datasets.mpr_dataset import MPR_Dataset
-from datasets.sampler import ImbalancedDatasetSampler
-from torch.utils.data import DataLoader
-from tqdm import tqdm
+import logging
+import warnings
 import inspect
 import importlib
 import os
-import yaml
-import logging
-import warnings
+
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+import torch
+from torchvision import transforms
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+
+from ignite.metrics import Accuracy, Loss, Precision, Recall, MetricsLambda
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+
+from datasets.mpr_dataset import MPR_Dataset
+from datasets.sampler import ImbalancedDatasetSampler
+
+import albumentations
+from tqdm import tqdm
+import yaml
 from tensorboard import program
 
 
@@ -34,6 +40,7 @@ class Trainer:
         self.__load_tensorboad()
         self.__load_model()
         self.__load_optimizer()
+        self.__load_augmentation()
         self.__load_loaders()
         self.__load_metrics()
         self.__create_pbar()
@@ -52,7 +59,6 @@ class Trainer:
         tb.configure(argv=[None, '--logdir', '{}/logs'.format(self.path)])
         tb.launch()
 
-
     def __save_config(self):
         config_path = os.path.join(self.path, "config.yaml")
         with open(config_path, 'w') as f:
@@ -65,8 +71,12 @@ class Trainer:
 
     def __load_optimizer(self):
         mapping = self.__module_mapping('torch.optim')
-        self.optimizer = mapping[self.config['optimizer']['name']](self.model.parameters(), **self.config['optimizer']['parameters'])
+        self.optimizer = mapping[self.config['optimizer']['name']](self.model.parameters(),
+                                                                   **self.config['optimizer']['parameters'])
 
+    def __load_augmentation(self):
+        mapping = self.__module_mapping('augmentations')
+        self.augmentation = mapping[self.config['data']['augmentation']['name']](**self.config['data']['augmentation']['parameters'])
 
     def __load_metrics(self):
         precision = Precision(average=False)
@@ -86,11 +96,14 @@ class Trainer:
             transforms.ToTensor(),
             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
-        #  TODO: Add augmentations
         root_dir = self.config["data"]["root_dir"]
-        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform)
-        self.train_loader = DataLoader(train_dataset, sampler=ImbalancedDatasetSampler(train_dataset), batch_size=self.config["dataloader"]["batch_size"])
-        self.val_loader = DataLoader(MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False, batch_size=64)
+        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
+                                    augmentation=self.augmentation)
+        self.train_loader = DataLoader(train_dataset, sampler=ImbalancedDatasetSampler(train_dataset),
+                                       batch_size=self.config["dataloader"]["batch_size"])
+        self.val_loader = DataLoader(
+            MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False,
+            batch_size=64)
 
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
@@ -117,7 +130,7 @@ class Trainer:
             self.evaluator.run(self.train_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalar("epoch/{}/train".format(metric), metrics[metric], engine.state.epoch)
+                self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
             tqdm.write("Training Results - Epoch: {} {}".format(engine.state.epoch, results))
@@ -127,17 +140,17 @@ class Trainer:
             self.evaluator.run(self.val_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalar("epoch/{}/validation".format(metric), metrics[metric], engine.state.epoch)
+                self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
             self.pbar.n = self.pbar.last_print_n = 0
-
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
+
 
 if __name__ == "__main__":
     pass

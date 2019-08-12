@@ -22,13 +22,14 @@ class MPR_Dataset(Dataset):
     STENOSIS_SCORE_COLUMN = 'STENOSIS_SCORE'
     LABEL_COLUMN = 'LABEL'
 
-    def __init__(self, root_dir, partition="train", transform=None, config={}):
+    def __init__(self, root_dir, partition="train", transform=None, augmentation=None, config={}):
         self.root_dir = root_dir
         self.partition = partition
         self.config = config
         self.__load_data()
         self.__find_labels()
         self.transform = transform
+        self.augmentation = augmentation
 
     def __load_data(self):
         df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
