@@ -1,2 +1,16 @@
 data
+utils/
+__pycache__
+weights_only_lad/
+weights_all_branches/
+runs/
+dataloaders/
+__pycache__/
+.ipynb_checkpoints/
+prediction_results/
 
+*.save
+*.swp
+*.pyc
+*.xlsx
+*.csv
