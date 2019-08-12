@@ -107,7 +107,7 @@ class Trainer:
         def log_training_loss(engine):
             iter = (engine.state.iteration - 1) % len(self.train_loader) + 1
             if iter % 10 == 0:
-                self.writer.add_scalar("train/batch/loss", engine.state.output, engine.state.iteration)
+                self.writer.add_scalar("batch/loss/train", engine.state.output, engine.state.iteration)
                 self.pbar.desc = self.desc.format(engine.state.output)
                 self.pbar.update(10)
 
@@ -117,7 +117,7 @@ class Trainer:
             self.evaluator.run(self.train_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalar("train/epoch/{}".format(metric), metrics[metric], engine.state.epoch)
+                self.writer.add_scalar("epoch/{}/train".format(metric), metrics[metric], engine.state.epoch)
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
             tqdm.write("Training Results - Epoch: {} {}".format(engine.state.epoch, results))
@@ -127,7 +127,7 @@ class Trainer:
             self.evaluator.run(self.val_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalar("validation/epoch/{}".format(metric), metrics[metric], engine.state.epoch)
+                self.writer.add_scalar("epoch/{}/validation".format(metric), metrics[metric], engine.state.epoch)
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
             self.pbar.n = self.pbar.last_print_n = 0

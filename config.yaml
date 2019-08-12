@@ -2,7 +2,7 @@ experiments_path: experiments/
 device: cuda
 
 dataloader:
-  batch_size: 64
+  batch_size: 16
   sampler: ''
 
 data:
