@@ -1,4 +1,5 @@
 data
+venv/
 utils/
 __pycache__
 weights_only_lad/
@@ -14,3 +15,4 @@ prediction_results/
 *.pyc
 *.xlsx
 *.csv
+

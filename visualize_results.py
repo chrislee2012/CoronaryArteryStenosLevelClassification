@@ -13,7 +13,7 @@ from sklearn.metrics import f1_score, accuracy_score, balanced_accuracy_score, \
                             precision_score, recall_score, auc, roc_auc_score, \
                             confusion_matrix, roc_curve
 from utils.print_pretty_confusion_matrix import plot_confusion_matrix_from_data 
-sys.path.insert(0, 'dataloaders/')
+sys.path.insert(0, 'datasets/')
 
 from binary_data_loader import LAD_MPR_Loader
 from estimate_model import *
@@ -21,6 +21,39 @@ from os.path import join
 import re
 from os import listdir
 import cv2
+
+
+def calculate_metrics(col_section, col_ids, col_preds, col_labels):
+    """
+    """
+    assert len(col_section) == len(col_ids) == len(col_preds) == len(col_labels)
+
+    metrics = {'ACC_section': 0, 'ACC_patient': 0, 'ACC_artery': 0, 'F1_section': 0, 'F1_patient': 0, 'F1_artery': 0}
+    dict_artery = {'LAD': ['D-1', 'D-2', 'LAD', 'D-3', '2D-2', 'D-1Original', 'LADOriginal', 'D-4'],
+                   'LCX': ['LCX', 'OM-2', 'OM-1', 'OM-3', 'OM', 'LCX-PLB', 'LCX-PDA'],
+                   'RCA': ['RCA', 'RCA-PLB', 'RCA-PDA']}
+
+    df = pd.concat([col_ids, col_section, col_preds, col_labels], axis=1)
+    df = df.rename(columns={col_section.name: 'section', col_ids.name: 'patient', col_preds.name:
+        'preds', col_labels.name: 'labels'})
+    df['artery'] = df['section'].apply(lambda x: [k for k in dict_artery.keys() if x in dict_artery[k]][0])
+
+    # Calculating accuracy for each level
+    # PATIENT GENERAL
+    predictions = df[['preds', 'labels', 'patient']].groupby('patient').agg(lambda x: x.value_counts().index[0])
+    acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
+    f1 = f1_score(predictions['preds'].values, predictions['labels'].values)
+    metrics['ACC_patient'], metrics['F1_patient'] = acc, f1
+
+    for metric in ['section', 'artery']:
+        predictions = df[['preds', 'labels', 'patient', metric]].groupby(['patient', metric]).agg(
+            lambda x: x.value_counts().index[0])
+        acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
+        f1 = f1_score(predictions['preds'].values, predictions['labels'].values)
+        metrics['ACC_{}'.format(metric)] = acc
+        metrics['F1_{}'.format(metric)] = f1
+
+    return metrics
 
 
 def label_predictions_to_images(partition, path_model, df, type_pred):
