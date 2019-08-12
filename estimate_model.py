@@ -21,7 +21,7 @@ from sklearn.metrics import f1_score, accuracy_score, balanced_accuracy_score, \
                             precision_score, recall_score, auc, roc_auc_score, \
                             confusion_matrix, roc_curve
 from utils.print_pretty_confusion_matrix import plot_confusion_matrix_from_data 
-sys.path.insert(0, 'dataloaders/')
+sys.path.insert(0, 'datasets/')
 
 from binary_data_loader import LAD_MPR_Loader
 

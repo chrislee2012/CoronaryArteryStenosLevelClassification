@@ -2,6 +2,8 @@ import torch
 import torch.utils.data
 import torchvision
 
+from datasets.mpr_dataset import MPR_Dataset
+
 
 class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
     """Samples elements randomly from a given list of indices for imbalanced dataset
@@ -43,7 +45,11 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
         elif dataset_type is torchvision.datasets.ImageFolder:
             return dataset.imgs[idx][1]
         else:
+<<<<<<< HEAD:dataloaders/sampler.py
             return dataset.labels.iloc[idx,6]
+=======
+            return dataset.labels[idx]
+>>>>>>> 496715200783f33699b46993821d0e0450acdda7:datasets/sampler.py
                 
     def __iter__(self):
         return (self.indices[i] for i in torch.multinomial(

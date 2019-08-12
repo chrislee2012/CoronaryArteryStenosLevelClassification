@@ -13,7 +13,7 @@ from sklearn.metrics import f1_score, accuracy_score, balanced_accuracy_score, \
                             precision_score, recall_score, auc, roc_auc_score, \
                             confusion_matrix, roc_curve
 from utils.print_pretty_confusion_matrix import plot_confusion_matrix_from_data 
-sys.path.insert(0, 'dataloaders/')
+sys.path.insert(0, 'datasets/')
 
 from binary_data_loader import LAD_MPR_Loader
 from estimate_model import *
@@ -25,8 +25,11 @@ import cv2
 
 def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     """
+<<<<<<< HEAD
     Calculate final auc and f1 metrics on three levels: per patient, per section and per artery
     :return: {dict} each metric as a key and its calculated metric as a value
+=======
+>>>>>>> refactor
     """
     assert len(col_section) == len(col_ids) == len(col_preds) == len(col_labels)
 
@@ -41,8 +44,20 @@ def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     df['artery'] = df['section'].apply(lambda x: [k for k in dict_artery.keys() if x in dict_artery[k]][0])
 
     # Calculating accuracy for each level
+<<<<<<< HEAD
     for metric in ['section', 'patient', 'artery']:
         predictions = df[['preds', 'labels', metric]].groupby(metric).agg(lambda x: x.value_counts().index[0])
+=======
+    # PATIENT GENERAL
+    predictions = df[['preds', 'labels', 'patient']].groupby('patient').agg(lambda x: x.value_counts().index[0])
+    acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
+    f1 = f1_score(predictions['preds'].values, predictions['labels'].values)
+    metrics['ACC_patient'], metrics['F1_patient'] = acc, f1
+
+    for metric in ['section', 'artery']:
+        predictions = df[['preds', 'labels', 'patient', metric]].groupby(['patient', metric]).agg(
+            lambda x: x.value_counts().index[0])
+>>>>>>> refactor
         acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
         f1 = f1_score(predictions['preds'].values, predictions['labels'].values)
         metrics['ACC_{}'.format(metric)] = acc
