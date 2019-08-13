@@ -146,6 +146,7 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
                 else:
+                    print(metrics[metric])
                     df = pd.DataFrame(metrics[metric], range(3), range(3))
                     sn.heatmap(df, annot=True)
                     fig = plt.figure()
