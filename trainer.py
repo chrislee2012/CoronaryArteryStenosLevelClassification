@@ -13,15 +13,18 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from ignite.metrics import Accuracy, Loss, Precision, Recall, MetricsLambda
+from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-
+from ignite.handlers import ModelCheckpoint
 from datasets.mpr_dataset import MPR_Dataset
-from samplers import ImbalancedDatasetSampler
 
 from tqdm import tqdm
 import yaml
 from tensorboard import program
+import seaborn as sn
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Trainer:
@@ -34,7 +37,7 @@ class Trainer:
         os.makedirs(self.path, exist_ok=True)
 
         self.device = self.config['device']
-
+        self.n_class = len(self.config['data']['groups'])
         self.__save_config()
         self.__load_tensorboad()
         self.__load_model()
@@ -66,7 +69,7 @@ class Trainer:
 
     def __load_model(self):
         mapping = self.__module_mapping('models')
-        self.config['model']['parameters']['n_classes'] = len(self.config['data']['groups'])
+        self.config['model']['parameters']['n_classes'] = self.n_class
         self.model = mapping[self.config['model']['name']](**self.config['model']['parameters'])
 
     def __load_optimizer(self):
@@ -84,10 +87,11 @@ class Trainer:
         recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
-
+        confusion_matrix = ConfusionMatrix(self.n_class)
         # TODO: Add metric by patient
         self.metrics = {'accuracy': Accuracy(),
                         "f1": F1,
+                        "confusion_matrix": confusion_matrix,
                         "precision": precision.mean(),
                         "recall": recall.mean(),
                         'loss': Loss(F.cross_entropy)}
@@ -139,9 +143,19 @@ class Trainer:
             self.evaluator.run(self.train_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
+                if metric != "confusion_matrix":
+                    self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
+                else:
+                    df = pd.DataFrame(metric, range(3), range(3))
+                    sn.heatmap(df, annot=True)
+                    fig = plt.figure()
+                    fig.canvas.draw()
+                    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/train/", data)
 
-            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Training Results - Epoch: {} {}".format(engine.state.epoch, results))
 
         @self.trainer.on(Events.EPOCH_COMPLETED)
@@ -149,8 +163,17 @@ class Trainer:
             self.evaluator.run(self.val_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
-            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+                if metric != "confusion_matrix":
+                    self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
+                else:
+                    df = pd.DataFrame(metric, range(3), range(3))
+                    sn.heatmap(df, annot=True)
+                    fig = plt.figure()
+                    fig.canvas.draw()
+                    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/validation/", data)
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
 
         @self.trainer.on(Events.EPOCH_COMPLETED)
@@ -158,8 +181,18 @@ class Trainer:
             self.evaluator.run(self.test_loader)
             metrics = self.evaluator.state.metrics
             for metric in metrics:
-                self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
-            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+                if metric != "confusion_matrix":
+                    self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
+                else:
+                    df = pd.DataFrame(metric, range(3), range(3))
+                    sn.heatmap(df, annot=True)
+                    fig = plt.figure()
+                    fig.canvas.draw()
+                    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/test/", data)
+
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Test Results - Epoch: {}  {}".format(engine.state.epoch, results))
             self.pbar.n = self.pbar.last_print_n = 0
 
@@ -177,4 +210,11 @@ class Trainer:
 
 
 if __name__ == "__main__":
-    pass
+    metric = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    df = pd.DataFrame(metric, range(3), range(3))
+    sn.heatmap(df, annot=True)
+    fig = plt.figure()
+    fig.canvas.draw()
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    print(data.shape)
