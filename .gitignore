@@ -13,9 +13,11 @@ __pycache__/
 .ipynb_checkpoints/
 prediction_results/
 experiments/
-
+.gitignore
 *.save
 *.swp
 *.pyc
 *.xlsx
 *.csv
+*.zip
+
