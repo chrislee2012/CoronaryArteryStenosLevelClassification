@@ -44,6 +44,7 @@ class MPR_Dataset(Dataset):
             for value in values:
                 mapper[value] = group
         self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x])).tolist()
+        self.arteries = self.df[self.ARTERY_COLUMN]
 
     def __len__(self):
         return len(self.df)
@@ -51,7 +52,7 @@ class MPR_Dataset(Dataset):
     def __getitem__(self, idx):
         info = self.df.iloc[idx]
         path = os.path.join(self.root_dir, self.partition, info[self.IMG_PATH_COLUMN])
-        artery = info[self.ARTERY_COLUMN]
+        artery = self.arteries[idx]
         stenosis_scores = info[self.STENOSIS_SCORE_COLUMN]
         y = self.labels[idx]
         X = cv2.imread(path)
