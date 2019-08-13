@@ -13,7 +13,7 @@ class LightAug:
             Transpose(),
             RandomRotate90(),
             ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=45, p=0.2),
-        ], p=self.p)(x)
+        ], p=self.p)(image=x)['image']
 
 class MediumAug:
     def __init__(self, p=0.8):
@@ -32,7 +32,7 @@ class MediumAug:
                 MedianBlur(blur_limit=3, p=0.1),
                 Blur(blur_limit=3, p=0.1),
             ], p=0.2),
-        ], p=self.p)(x)
+        ], p=self.p)(image=x)['image']
 
 class StrongAug:
     def __init__(self, p=0.8):
@@ -58,4 +58,4 @@ class StrongAug:
                 CLAHE(),
                 HueSaturationValue(p=0.3),
             ])
-        ], p=self.p)(x)
+        ], p=self.p)(image=x)['image']

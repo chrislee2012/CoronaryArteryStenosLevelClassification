@@ -105,6 +105,10 @@ class Trainer:
             MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False,
             batch_size=64)
 
+        self.test_loader = DataLoader(
+            MPR_Dataset(root_dir, partition="test", config=self.config["data"], transform=transform), shuffle=False,
+            batch_size=64)
+
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
         self.pbar = tqdm(
@@ -143,6 +147,15 @@ class Trainer:
                 self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
+
+        @self.trainer.on(Events.EPOCH_COMPLETED)
+        def log_test_results(engine):
+            self.evaluator.run(self.test_loader)
+            metrics = self.evaluator.state.metrics
+            for metric in metrics:
+                self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
+            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics])
+            tqdm.write("Test Results - Epoch: {}  {}".format(engine.state.epoch, results))
             self.pbar.n = self.pbar.last_print_n = 0
 
     def __create_evaluator(self):

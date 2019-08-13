@@ -57,7 +57,7 @@ class MPR_Dataset(Dataset):
         X = cv2.imread(path)
 
         if self.augmentation:
-            X = self.augmentation(image=X)['image']
+            X = self.augmentation(X)
 
         if self.transform:
             X = self.transform(X)
