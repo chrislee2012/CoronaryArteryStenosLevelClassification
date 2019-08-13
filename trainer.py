@@ -203,7 +203,7 @@ class Trainer:
                                     score_function=lambda engine: engine.state.metrics['loss'], n_saved=5,
                                     atomic=True, create_dir=True)
 
-        self.evaluator.add_event_handler(Events.COMPLETED, best_loss, {"model": model})
+        self.evaluator.add_event_handler(Events.COMPLETED, best_loss, {"model": self.model})
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
