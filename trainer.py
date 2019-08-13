@@ -146,12 +146,11 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
                 else:
+                    fig = plt.figure()
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
-                    fig = plt.figure()
-                    fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
+                    data = data.reshape((1,) + fig.canvas.get_width_height()[::-1] + (3,))
                     self.writer.add_images("epoch/train/", data)
 
 
@@ -166,12 +165,11 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
                 else:
+                    fig = plt.figure()
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
-                    fig = plt.figure()
-                    fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
+                    data = data.reshape((1,) + fig.canvas.get_width_height()[::-1] + (3,))
                     self.writer.add_images("epoch/validation/", data)
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
@@ -184,12 +182,11 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
                 else:
+                    fig = plt.figure()
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
-                    fig = plt.figure()
-                    fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
+                    data = data.reshape((1,) + fig.canvas.get_width_height()[::-1] + (3,))
                     self.writer.add_images("epoch/test/", data)
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
@@ -210,11 +207,9 @@ class Trainer:
 
 
 if __name__ == "__main__":
+    fig = plt.figure()
     metric = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
     df = pd.DataFrame(metric, range(3), range(3))
     sn.heatmap(df, annot=True)
-    fig = plt.figure()
-    fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    print(data.shape)
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (1, 3,))
