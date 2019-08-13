@@ -150,8 +150,8 @@ class Trainer:
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(fig.canvas.get_width_height())
-                    self.writer.add_images("epoch/train/", data, dataformats='WH')
+                    data = data.reshape(ffig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/train/", data, dataformats='HWC')
 
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
@@ -169,8 +169,8 @@ class Trainer:
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(fig.canvas.get_width_height())
-                    self.writer.add_images("epoch/validation/", data, dataformats='WH')
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/validation/", data, dataformats='HWC')
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
 
@@ -186,8 +186,8 @@ class Trainer:
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(fig.canvas.get_width_height())
-                    self.writer.add_images("epoch/test/", data, dataformats='WH')
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    self.writer.add_images("epoch/test/", data, dataformats='HWC')
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Test Results - Epoch: {}  {}".format(engine.state.epoch, results))
