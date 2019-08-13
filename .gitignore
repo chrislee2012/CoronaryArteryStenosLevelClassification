@@ -19,3 +19,4 @@ experiments/
 *.pyc
 *.xlsx
 *.csv
+.idea/
