@@ -44,7 +44,7 @@ class MPR_Dataset(Dataset):
             for value in values:
                 mapper[value] = group
         self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x])).tolist()
-        self.arteries = self.df[self.ARTERY_COLUMN]
+        self.arteries = self.df[self.ARTERY_COLUMN].tolist()
 
     def __len__(self):
         return len(self.df)
