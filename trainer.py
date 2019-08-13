@@ -151,7 +151,7 @@ class Trainer:
                     fig = plt.figure()
                     fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0)
+                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
                     self.writer.add_images("epoch/train/", data)
 
 
@@ -171,7 +171,7 @@ class Trainer:
                     fig = plt.figure()
                     fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0)
+                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
                     self.writer.add_images("epoch/validation/", data)
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
@@ -189,7 +189,7 @@ class Trainer:
                     fig = plt.figure()
                     fig.canvas.draw()
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0)
+                    data = np.expand_dims(np.moveaxis(data.reshape(fig.canvas.get_width_height()[::-1] + (3,)), -1, 0), axis=0)
                     self.writer.add_images("epoch/test/", data)
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
