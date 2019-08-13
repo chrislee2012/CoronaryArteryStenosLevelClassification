@@ -146,7 +146,7 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
                 else:
-                    df = pd.DataFrame(metric, range(3), range(3))
+                    df = pd.DataFrame(metrics[metric], range(3), range(3))
                     sn.heatmap(df, annot=True)
                     fig = plt.figure()
                     fig.canvas.draw()
@@ -166,7 +166,7 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
                 else:
-                    df = pd.DataFrame(metric, range(3), range(3))
+                    df = pd.DataFrame(metrics[metric], range(3), range(3))
                     sn.heatmap(df, annot=True)
                     fig = plt.figure()
                     fig.canvas.draw()
@@ -184,7 +184,7 @@ class Trainer:
                 if metric != "confusion_matrix":
                     self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
                 else:
-                    df = pd.DataFrame(metric, range(3), range(3))
+                    df = pd.DataFrame(metrics[metric], range(3), range(3))
                     sn.heatmap(df, annot=True)
                     fig = plt.figure()
                     fig.canvas.draw()
