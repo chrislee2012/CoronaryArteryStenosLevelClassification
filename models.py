@@ -2,8 +2,6 @@ from torch import nn
 from torchvision import models
 from efficientnet_pytorch import EfficientNet
 
-
-
 class ResNet18(nn.Module):
     def __init__(self, n_classes=2, pretrained=True):
         super(ResNet18, self).__init__()
@@ -25,8 +23,7 @@ class ResNet50(nn.Module):
         return self.model(x)
 
 class EfficientNetB0(nn.Module):
-
-    def __init__(self, n_classes=2, pretrained=True)
+    def __init__(self, n_classes=2, pretrained=True):
         super(EfficientNetB0, self).__init__()
         if pretrained:
             self.model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=n_classes)
