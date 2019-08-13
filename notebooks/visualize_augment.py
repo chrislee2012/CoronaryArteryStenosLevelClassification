@@ -41,14 +41,12 @@ transform = transforms.Compose([
 
 root_dir = config["data"]["root_dir"]
 mapping_aug = __module_mapping('augmentations')
-augmentation = mapping_aug[config['data']['augmentation']['name']](config['data']['augmentation']['parameters'])
-
+augmentation = mapping_aug[config['data']['augmentation']['name']](**config['data']['augmentation']['parameters'])
 
 train_dataset = MPR_Dataset(root_dir, partition="train", config=config["data"], transform=transform,
                             augmentation=augmentation)
 
 train_loader = DataLoader(train_dataset, batch_size=8)
 
-for step, (x, y) in enumerate(train_loader):
-    print(x.shape)
-    break
+for x, y in train_loader:
+    print("Hello")

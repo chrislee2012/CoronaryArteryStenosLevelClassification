@@ -76,7 +76,8 @@ class Trainer:
 
     def __load_augmentation(self):
         mapping = self.__module_mapping('augmentations')
-        self.augmentation = mapping[self.config['data']['augmentation']['name']](**self.config['data']['augmentation']['parameters'])
+        self.augmentation = mapping[self.config['data']['augmentation']['name']](
+            **self.config['data']['augmentation']['parameters'])
 
     def __load_metrics(self):
         precision = Precision(average=False)
@@ -164,6 +165,12 @@ class Trainer:
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
+
+        best_loss = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
+                                    score_function=lambda engine: engine.state.metrics['loss'], n_saved=5,
+                                    atomic=True, create_dir=True)
+
+        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver, {model_name: model})
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
