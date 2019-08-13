@@ -56,10 +56,10 @@ class MPR_Dataset(Dataset):
         y = self.labels[idx]
         X = cv2.imread(path)
 
-        if augmentation:
+        if self.augmentation:
             X = self.augmentation(image=X)['image']
 
-        if transform:
+        if self.transform:
             X = self.transform(X)
         return X, y
 
