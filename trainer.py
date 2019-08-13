@@ -151,7 +151,7 @@ class Trainer:
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
                     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/train/", data, dataformats='HWC')
+                    self.writer.add_images("epoch/confusion_matrix/train/", data, dataformats='HWC')
 
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
@@ -170,7 +170,7 @@ class Trainer:
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
                     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/validation/", data, dataformats='HWC')
+                    self.writer.add_images("epoch/confusion_matrix/validation/", data, dataformats='HWC')
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
 
@@ -187,7 +187,7 @@ class Trainer:
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
                     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/test/", data, dataformats='HWC')
+                    self.writer.add_images("epoch/confusion_matrix/test/", data, dataformats='HWC')
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("Test Results - Epoch: {}  {}".format(engine.state.epoch, results))
@@ -197,7 +197,7 @@ class Trainer:
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
         best_loss = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
-                                    score_function=lambda engine: engine.state.metrics['loss'], n_saved=5,
+                                    score_function=lambda engine: -engine.state.metrics['loss'], n_saved=5,
                                     atomic=True, create_dir=True)
 
         self.evaluator.add_event_handler(Events.COMPLETED, best_loss, {"model": self.model})
