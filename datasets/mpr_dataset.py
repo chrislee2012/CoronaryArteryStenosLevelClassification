@@ -14,7 +14,7 @@ import cv2
 
 
 class MPR_Dataset(Dataset):
-    LABELS_FILENAME = "new_labels.csv"
+    LABELS_FILENAME = "labels.csv"
 
     ARTERY_COLUMN = "ARTERY_SECTION"
     VIEWPOINT_INDEX_COLUMN = "MPR_VIEWPOINT_INDEX"
@@ -55,6 +55,10 @@ class MPR_Dataset(Dataset):
         stenosis_scores = info[self.STENOSIS_SCORE_COLUMN]
         y = self.labels[idx]
         X = cv2.imread(path)
+
+        if augmentation:
+            X = self.augmentation(image=X)['image']
+
         if transform:
             X = self.transform(X)
         return X, y
@@ -68,7 +72,7 @@ if __name__ == '__main__':
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
     data_loader = MPR_Dataset(root_dir, dataset_partition, transform=transform)
-    #
+    
     # for img, labels in data_loader:
     #     print(labels, img.shape)
     #     break

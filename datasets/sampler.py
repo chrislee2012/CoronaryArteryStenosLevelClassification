@@ -45,12 +45,8 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
         elif dataset_type is torchvision.datasets.ImageFolder:
             return dataset.imgs[idx][1]
         else:
-<<<<<<< HEAD:dataloaders/sampler.py
-            return dataset.labels.iloc[idx,6]
-=======
-            return dataset.labels[idx]
->>>>>>> 496715200783f33699b46993821d0e0450acdda7:datasets/sampler.py
-                
+            return dataset.labels[idx]#0 if dataset.labels[idx] == 0 else 1
+
     def __iter__(self):
         return (self.indices[i] for i in torch.multinomial(
             self.weights, self.num_samples, replacement=True))

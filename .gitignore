@@ -12,6 +12,7 @@ dataloaders/
 __pycache__/
 .ipynb_checkpoints/
 prediction_results/
+experiments/
 
 *.save
 *.swp
