@@ -27,7 +27,7 @@ class ShuffleNetv2(nn.Module):
 
     def __init__(self, n_classes=2, pretrained=True):
         super(ShuffleNetv2, self).__init__()
-        self.model =  models.shufflenet_v2_x2_0(pretrained=pretrained)
+        self.model =  models.shufflenet_v2_x1_0(pretrained=pretrained)
         features_num = self.model.fc.in_features
         self.model.fc = nn.Linear(features_num, n_classes)
 

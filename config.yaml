@@ -20,7 +20,7 @@ data:
       p: 0.8
 
 model:
-  name: ResNet18
+  name: ShuffleNetv2
   parameters:
     pretrained: true
 
