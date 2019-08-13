@@ -17,9 +17,8 @@ from ignite.metrics import Accuracy, Loss, Precision, Recall, MetricsLambda
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 
 from datasets.mpr_dataset import MPR_Dataset
-from datasets.sampler import ImbalancedDatasetSampler
+from samplers import ImbalancedDatasetSampler
 
-import albumentations
 from tqdm import tqdm
 import yaml
 from tensorboard import program
@@ -91,6 +90,10 @@ class Trainer:
                         "recall": recall.mean(),
                         'loss': Loss(F.cross_entropy)}
 
+    def __load_sampler(self):
+        mapping = self.__module_mapping('sampler')
+        self.sampler = mapping[self.config['dataloader']['sampler']]
+
     def __load_loaders(self):
         transform = transforms.Compose([
             transforms.ToTensor(),
@@ -99,7 +102,7 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
         train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
-        self.train_loader = DataLoader(train_dataset, sampler=ImbalancedDatasetSampler(train_dataset),
+        self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
                                        batch_size=self.config["dataloader"]["batch_size"])
         self.val_loader = DataLoader(
             MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False,
@@ -119,7 +122,7 @@ class Trainer:
     def __create_trainer(self):
         self.trainer = create_supervised_trainer(self.model, self.optimizer, F.cross_entropy, device=self.device)
 
-        # Add checkpoints
+        # TODO: Add checkpoints
         @self.trainer.on(Events.ITERATION_COMPLETED)
         def log_training_loss(engine):
             iter = (engine.state.iteration - 1) % len(self.train_loader) + 1
