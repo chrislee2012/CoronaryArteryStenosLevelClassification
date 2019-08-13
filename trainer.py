@@ -150,7 +150,7 @@ class Trainer:
                     df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
                     sn.heatmap(df, annot=True)
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(ffig.canvas.get_width_height()[::-1] + (3,))
+                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
                     self.writer.add_images("epoch/train/", data, dataformats='HWC')
 
 
