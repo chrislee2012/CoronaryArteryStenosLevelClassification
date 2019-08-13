@@ -1,19 +1,19 @@
 experiments_path: experiments/
-device: cpu
+device: cuda
 
 dataloader:
   batch_size: 64
-  sampler: ImbalancedDatasetSampler
+  sampler: BalancedBatchSampler
 
 data:
   root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv/
   filters:
-    arteries: [ 'LAD', 'D-1', 'D-2', 'D-3' ]
+    arteries: [ 'LAD', 'D-1', 'D-2', 'D-3', 'PLV_RCA', 'LCX',  'OM-2', 'RCA', 'PLV_LCX', 'OM-3', 'PDA_LCX','OM-1', 'OM' ]
     viewpoint_index_step: 3
   groups:
     0: [ 'NORMAL','-']
     1: [ '<25%', '<35%',  '25-50%', '25%', '<50%']
-    2: ['50%', '70%', '50-70%', '70-90%', '90-100%', '>50%', '>70%', '90%', '>90%', '>75%']
+    2: ['50%', '70%','*50%', '50-70%', '70-90%', '90-100%', '>50%', '>70%', '90%', '>90%','75%', '>75%']
   augmentation:
     name: MediumAug
     parameters:
