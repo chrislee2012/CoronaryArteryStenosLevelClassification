@@ -40,6 +40,7 @@ class Trainer:
         self.__load_model()
         self.__load_optimizer()
         self.__load_augmentation()
+        self.__load_sampler()
         self.__load_loaders()
         self.__load_metrics()
         self.__create_pbar()
@@ -91,7 +92,7 @@ class Trainer:
                         'loss': Loss(F.cross_entropy)}
 
     def __load_sampler(self):
-        mapping = self.__module_mapping('sampler')
+        mapping = self.__module_mapping('samplers')
         self.sampler = mapping[self.config['dataloader']['sampler']]
 
     def __load_loaders(self):

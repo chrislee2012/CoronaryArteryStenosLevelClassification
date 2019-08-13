@@ -1,9 +1,9 @@
 experiments_path: experiments/
-device: cuda
+device: cpu
 
 dataloader:
   batch_size: 64
-  sampler: ''
+  sampler: ImbalancedDatasetSampler
 
 data:
   root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv/
