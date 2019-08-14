@@ -172,17 +172,23 @@ class Trainer:
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
-        # best_model_saver = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
-        #                             score_function=lambda engine: -engine.state.metrics['loss'], n_saved=5,
-        #                             atomic=True, create_dir=True)
-        best_model_saver = ModelCheckpoint(
-                                os.path.join(self.path, "models/"), filename_prefix="model", 
-                                score_name="val_{}".format('recall'),
-                                score_function=lambda engine: engine.state.metrics['recall'], 
-                                n_saved=5, atomic=True, create_dir=True
-                                          )
-
-        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver, {"model": self.model})
+        best_model_saver_loss = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
+                                    score_function=lambda engine: -engine.state.metrics['loss'],
+                                    n_saved=3, atomic=True, create_dir=True
+                                    )
+        best_model_saver_recall = ModelCheckpoint(
+                                    os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_recall",
+                                    score_function=lambda engine: engine.state.metrics['recall'], 
+                                    n_saved=3, atomic=True, create_dir=True
+                                )
+        best_model_saver_f1 = ModelCheckpoint(
+                                os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_f1",
+                                score_function=lambda engine: engine.state.metrics['f1'], 
+                                n_saved=3, atomic=True, create_dir=True
+                                )
+        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_loss, {"model": self.model})
+        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_recall, {"model": self.model})
+        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_f1, {"model": self.model})
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
