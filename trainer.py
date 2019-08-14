@@ -78,9 +78,12 @@ class Trainer:
                                                                    **self.config['optimizer']['parameters'])
 
     def __load_augmentation(self):
-        mapping = self.__module_mapping('augmentations')
-        self.augmentation = mapping[self.config['data']['augmentation']['name']](
-            **self.config['data']['augmentation']['parameters'])
+        if self.config['data']['augmentation']['turn']:
+            mapping = self.__module_mapping('augmentations')
+            self.augmentation = mapping[self.config['data']['augmentation']['name']](
+                **self.config['data']['augmentation']['parameters'])
+        else:
+            self.augmentation = None
 
     def __load_metrics(self):
         precision = Precision(average=False)

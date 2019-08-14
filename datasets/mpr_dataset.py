@@ -33,8 +33,10 @@ class MPR_Dataset(Dataset):
 
     def __load_data(self):
         df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
-        df = df[(df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
-           (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)]
+        df = df[
+                    (df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
+                    (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)
+               ]
         df[self.STENOSIS_SCORE_COLUMN] = df[self.STENOSIS_SCORE_COLUMN].apply(literal_eval)
         self.df = df
 
