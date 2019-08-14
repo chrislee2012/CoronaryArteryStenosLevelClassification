@@ -42,6 +42,7 @@ class Trainer:
         self.__load_tensorboad()
         self.__load_model()
         self.__load_optimizer()
+        self.__load_loss()
         self.__load_augmentation()
         self.__load_sampler()
         self.__load_loaders()
@@ -85,6 +86,13 @@ class Trainer:
         else:
             self.augmentation = None
 
+    def __load_loss(self):
+        mapping = self.__module_mapping('losses')
+        mapping.update(self.__module_mapping('torch.nn'))
+        parameters = self.config['loss']['parameters'] if 'parameters' in self.config['loss'] else {}
+        self.loss = mapping[self.config['loss']['name']](**parameters)
+
+
     def __load_metrics(self):
         precision = Precision(average=False)
         recall = Recall(average=False)
@@ -97,7 +105,7 @@ class Trainer:
                         "confusion_matrix": confusion_matrix,
                         "precision": precision.mean(),
                         "recall": recall.mean(),
-                        'loss': Loss(F.cross_entropy)}
+                        'loss': Loss(self.loss)}
 
     def __load_sampler(self):
         mapping = self.__module_mapping('samplers')
@@ -127,7 +135,7 @@ class Trainer:
         )
 
     def __create_trainer(self):
-        self.trainer = create_supervised_trainer(self.model, self.optimizer, F.cross_entropy, device=self.device)
+        self.trainer = create_supervised_trainer(self.model, self.optimizer, self.loss, device=self.device)
 
         # TODO: Add checkpoints
         @self.trainer.on(Events.ITERATION_COMPLETED)
