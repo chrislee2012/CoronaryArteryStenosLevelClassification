@@ -42,7 +42,7 @@ class MediumAugFixed:
     def __call__(self, x):
         return Compose([
             Transpose(),
-            ShiftScaleRotate(shift_limit=0.06, scale_limit=0.2, rotate_limit=10, p=0.3),
+            ShiftScaleRotate(shift_limit=0.06, scale_limit=0.1, rotate_limit=10, p=0.3),
             OneOf([
                 MotionBlur(p=.2),
                 MedianBlur(blur_limit=3, p=0.1),
