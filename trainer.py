@@ -98,7 +98,7 @@ class Trainer:
         recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
-        confusion_matrix = ConfusionMatrix(self.n_class, average="samples")
+        confusion_matrix = ConfusionMatrix(self.n_class, average="recall")
         # TODO: Add metric by patient
         self.metrics = {'accuracy': Accuracy(),
                         "f1": F1,
@@ -172,11 +172,14 @@ class Trainer:
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
-        best_loss = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
-                                    score_function=lambda engine: -engine.state.metrics['loss'], n_saved=5,
-                                    atomic=True, create_dir=True)
+        best_model_saver = ModelCheckpoint(
+                                os.path.join(self.path, "models/"), filename_prefix="model", 
+                                score_name="val_{}".format(self.config['callbacks']['best_model_save_criteria']),
+                                score_function=lambda engine: -engine.state.metrics[self.config['callbacks']['best_model_save_criteria']], 
+                                n_saved=5, atomic=True, create_dir=True
+                                          )
 
-        self.evaluator.add_event_handler(Events.COMPLETED, best_loss, {"model": self.model})
+        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver, {"model": self.model})
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
