@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
-from datasets.mpr_dataset import MPR_Dataset
+from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL
 
 from tqdm import tqdm
 import yaml
@@ -111,7 +111,7 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
 
 
-        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
+        train_dataset = MPR_DatasetSTENOSIS_REMOVAL(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
 
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
