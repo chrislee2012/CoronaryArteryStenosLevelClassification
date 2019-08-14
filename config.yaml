@@ -1,5 +1,5 @@
 experiments_path: experiments/
-device: cuda
+device: cpu
 
 dataloader:
   batch_size: 64
@@ -24,10 +24,6 @@ model:
   name: ShuffleNetv2
   parameters:
     pretrained: true
-
-callbacks:
-  best_model_save_criteria: recall
-
 
 optimizer:
   name: Adam

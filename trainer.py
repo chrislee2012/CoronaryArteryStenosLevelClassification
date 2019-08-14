@@ -172,10 +172,13 @@ class Trainer:
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
+        # best_model_saver = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
+        #                             score_function=lambda engine: -engine.state.metrics['loss'], n_saved=5,
+        #                             atomic=True, create_dir=True)
         best_model_saver = ModelCheckpoint(
                                 os.path.join(self.path, "models/"), filename_prefix="model", 
-                                score_name="val_{}".format(self.config['callbacks']['best_model_save_criteria']),
-                                score_function=lambda engine: -engine.state.metrics[self.config['callbacks']['best_model_save_criteria']], 
+                                score_name="val_{}".format('recall'),
+                                score_function=lambda engine: engine.state.metrics['recall'], 
                                 n_saved=5, atomic=True, create_dir=True
                                           )
 
