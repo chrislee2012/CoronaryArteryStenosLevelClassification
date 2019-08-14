@@ -111,7 +111,6 @@ class MPR_DatasetSTENOSIS_REMOVAL(Dataset):
         for group, values in self.config['groups'].items():
             for value in values:
                 mapper[value] = group
-        print(mapper)
         self.labels = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x])).tolist()
         self.arteries = self.df[self.ARTERY_COLUMN].tolist()
 

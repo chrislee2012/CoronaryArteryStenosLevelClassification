@@ -119,7 +119,7 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
 
 
-        train_dataset = MPR_DatasetSTENOSIS_REMOVAL(root_dir, partition="train", config=self.config["data"], transform=transform,
+        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
 
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
