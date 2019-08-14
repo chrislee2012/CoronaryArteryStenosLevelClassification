@@ -21,7 +21,7 @@ from datasets.mpr_dataset import MPR_Dataset
 from tqdm import tqdm
 import yaml
 from tensorboard import program
-import seaborn as sn
+import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,7 +87,7 @@ class Trainer:
         recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
-        confusion_matrix = ConfusionMatrix(self.n_class)
+        confusion_matrix = ConfusionMatrix(self.n_class, average="samples")
         # TODO: Add metric by patient
         self.metrics = {'accuracy': Accuracy(),
                         "f1": F1,
@@ -106,17 +106,15 @@ class Trainer:
             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
         root_dir = self.config["data"]["root_dir"]
+
+
         train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
+
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
                                        batch_size=self.config["dataloader"]["batch_size"])
-        self.val_loader = DataLoader(
-            MPR_Dataset(root_dir, partition="val", config=self.config["data"], transform=transform), shuffle=False,
-            batch_size=64)
-
-        self.test_loader = DataLoader(
-            MPR_Dataset(root_dir, partition="test", config=self.config["data"], transform=transform), shuffle=False,
-            batch_size=64)
+        self.val_loaders = {partition: DataLoader(MPR_Dataset(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
+                batch_size=64) for partition in ["train", "val", "test"]}
 
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
@@ -137,61 +135,28 @@ class Trainer:
                 self.pbar.desc = self.desc.format(engine.state.output)
                 self.pbar.update(10)
 
-        @self.trainer.on(Events.EPOCH_COMPLETED)
-        def log_training_results(engine):
+        def log_results(engine, partition):
             self.pbar.refresh()
-            self.evaluator.run(self.train_loader)
+            self.evaluator.run(self.val_loaders[partition])
             metrics = self.evaluator.state.metrics
             for metric in metrics:
                 if metric != "confusion_matrix":
-                    self.writer.add_scalars("epoch/{}".format(metric), {'train': metrics[metric]}, engine.state.epoch)
+                    self.writer.add_scalars("epoch/{}".format(metric), {partition: metrics[metric]}, engine.state.epoch)
                 else:
                     fig = plt.figure()
-                    df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
-                    sn.heatmap(df, annot=True)
+                    df = pd.DataFrame(metrics[metric].cpu().numpy(), index=range(3), columns=range(3))
+                    ax = sns.heatmap(df, annot=True, cmap="coolwarm", fmt='.2f')
+                    ax.set(xlabel='Predicted label', ylabel='True label')
                     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
                     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/confusion_matrix/train/", data, dataformats='HWC')
-
-
-            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
-            tqdm.write("Training Results - Epoch: {} {}".format(engine.state.epoch, results))
-
-        @self.trainer.on(Events.EPOCH_COMPLETED)
-        def log_validation_results(engine):
-            self.evaluator.run(self.val_loader)
-            metrics = self.evaluator.state.metrics
-            for metric in metrics:
-                if metric != "confusion_matrix":
-                    self.writer.add_scalars("epoch/{}".format(metric), {'validation': metrics[metric]}, engine.state.epoch)
-                else:
-                    fig = plt.figure()
-                    df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
-                    sn.heatmap(df, annot=True)
-                    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/confusion_matrix/validation/", data, dataformats='HWC')
-            results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
-            tqdm.write("Validation Results - Epoch: {}  {}".format(engine.state.epoch, results))
-
-        @self.trainer.on(Events.EPOCH_COMPLETED)
-        def log_test_results(engine):
-            self.evaluator.run(self.test_loader)
-            metrics = self.evaluator.state.metrics
-            for metric in metrics:
-                if metric != "confusion_matrix":
-                    self.writer.add_scalars("epoch/{}".format(metric), {'test': metrics[metric]}, engine.state.epoch)
-                else:
-                    fig = plt.figure()
-                    df = pd.DataFrame(metrics[metric].numpy(), range(3), range(3))
-                    sn.heatmap(df, annot=True)
-                    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                    self.writer.add_images("epoch/confusion_matrix/test/", data, dataformats='HWC')
+                    self.writer.add_images("epoch/confusion_matrix/{}".format(partition), data, dataformats='HWC')
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
-            tqdm.write("Test Results - Epoch: {}  {}".format(engine.state.epoch, results))
-            self.pbar.n = self.pbar.last_print_n = 0
+            tqdm.write("{} Results - Epoch: {} {}".format(partition.capitalize(), engine.state.epoch, results))
+
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "train")
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "val")
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "test")
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
@@ -210,6 +175,8 @@ if __name__ == "__main__":
     fig = plt.figure()
     metric = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
     df = pd.DataFrame(metric, range(3), range(3))
-    sn.heatmap(df, annot=True)
+    sns.heatmap(df, annot=True)
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (1, 3,))
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    plt.imshow(data)
+    plt.show()
