@@ -150,10 +150,6 @@ class Trainer:
 
         def log_results(engine, partition):
             self.pbar.refresh()
-            def get_lr(optimizer):
-                for param_group in optimizer.param_groups:
-                    return param_group['lr']
-            print(get_lr(self.optimizer))
             self.evaluator.run(self.val_loaders[partition])
             metrics = self.evaluator.state.metrics
             for metric in metrics:
@@ -170,11 +166,15 @@ class Trainer:
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("{} Results - Epoch: {} {}".format(partition.capitalize(), engine.state.epoch, results))
-    
+        
+        def eval_func(engine, partition):
+            self.val_eval.run(self.val_loaders[partition])
 
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "train")
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "val")
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "test")
+        
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, eval_func, 'val')
 
         # create LR_scheduler
         step_scheduler = StepLR(self.optimizer, step_size=5, gamma=0.1)
@@ -184,6 +184,11 @@ class Trainer:
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
+
+
+
+        # Model Checkpointing
+        self.val_eval = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
 
         best_model_saver_loss = ModelCheckpoint(os.path.join(self.path, "models/"), filename_prefix="model", score_name="val_loss",
                                     score_function=lambda engine: -engine.state.metrics['loss'],
@@ -199,9 +204,9 @@ class Trainer:
                                 score_function=lambda engine: engine.state.metrics['f1'], 
                                 n_saved=3, atomic=True, create_dir=True
                                 )
-        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_loss, {"model": self.model})
-        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_recall, {"model": self.model})
-        self.evaluator.add_event_handler(Events.COMPLETED, best_model_saver_f1, {"model": self.model})
+        self.val_eval.add_event_handler(Events.COMPLETED, best_model_saver_loss, {"model": self.model})
+        self.val_eval.add_event_handler(Events.COMPLETED, best_model_saver_recall, {"model": self.model})
+        self.val_eval.add_event_handler(Events.COMPLETED, best_model_saver_f1, {"model": self.model})
 
     def run(self):
         self.trainer.run(self.train_loader, max_epochs=20)
