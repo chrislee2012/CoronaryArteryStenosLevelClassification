@@ -12,10 +12,13 @@ from torchvision import transforms
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torch.optim.lr_scheduler import StepLR
 
+from ignite.contrib.handlers.param_scheduler import LRScheduler
 from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
+
 from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL
 
 from tqdm import tqdm
@@ -137,7 +140,6 @@ class Trainer:
     def __create_trainer(self):
         self.trainer = create_supervised_trainer(self.model, self.optimizer, self.loss, device=self.device)
 
-        # TODO: Add checkpoints
         @self.trainer.on(Events.ITERATION_COMPLETED)
         def log_training_loss(engine):
             iter = (engine.state.iteration - 1) % len(self.train_loader) + 1
@@ -148,6 +150,10 @@ class Trainer:
 
         def log_results(engine, partition):
             self.pbar.refresh()
+            def get_lr(optimizer):
+                for param_group in optimizer.param_groups:
+                    return param_group['lr']
+            print(get_lr(self.optimizer))
             self.evaluator.run(self.val_loaders[partition])
             metrics = self.evaluator.state.metrics
             for metric in metrics:
@@ -164,10 +170,17 @@ class Trainer:
 
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("{} Results - Epoch: {} {}".format(partition.capitalize(), engine.state.epoch, results))
+    
 
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "train")
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "val")
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "test")
+
+        # create LR_scheduler
+        step_scheduler = StepLR(self.optimizer, step_size=5, gamma=0.1)
+        self.scheduler = LRScheduler(step_scheduler)
+        self.trainer.add_event_handler(Events.EPOCH_STARTED, self.scheduler)
+
 
     def __create_evaluator(self):
         self.evaluator = create_supervised_evaluator(self.model, metrics=self.metrics, device=self.device)
