@@ -33,4 +33,4 @@ optimizer:
 loss:
   name: OHEMLoss
   parameters:
-    k: 45
+    k: 40

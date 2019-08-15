@@ -8,5 +8,9 @@ class OHEMLoss(nn.Module):
 
     def forward(self, y_pred, y_true):
         loss = F.cross_entropy(y_pred, y_true, reduction='none')
-        _, idxs = loss.topk(self.k)
+        if len(y_pred) < self.k:
+            k = len(y_pred)
+            _, idxs = loss.topk(k)
+        else:
+            _, idxs = loss.topk(self.k)
         return loss[idxs].mean()
