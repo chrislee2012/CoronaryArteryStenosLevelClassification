@@ -1,8 +1,10 @@
 from __future__ import print_function, division
 
+import time
 from ast import literal_eval
 
 import os
+import random
 import torch
 import pandas as pd
 from skimage import io, transform
@@ -131,6 +133,81 @@ class MPR_DatasetSTENOSIS_REMOVAL(Dataset):
         if self.transform:
             X = self.transform(X)
         return X, y
+
+class MPR_Dataset_LSTM(Dataset):
+    LABELS_FILENAME = "labels.csv"
+
+    ARTERY_COLUMN = "ARTERY_SECTION"
+    VIEWPOINT_INDEX_COLUMN = "MPR_VIEWPOINT_INDEX"
+    IMG_PATH_COLUMN = 'IMG_PATH'
+    STENOSIS_SCORE_COLUMN = 'STENOSIS_SCORE'
+    LABEL_COLUMN = 'LABEL'
+    SEGMENT_ID_COLUMN = "SEGMENT_ID"
+
+    def __init__(self, root_dir, partition="train", level="img", transform=None, augmentation=None, config={}):
+        self.root_dir = root_dir
+        self.partition = partition
+        self.config = config
+        self.__load_data()
+        self.__detect_segments()
+        self.__find_labels()
+        self.transform = transform
+        self.augmentation = augmentation
+
+    def __load_data(self):
+        df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
+        if 'filters' in self.config:
+            df = df[
+                        (df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
+                        (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)
+                   ]
+        df = df[~df['IMG_PATH'].str.contains('CTCALEK24101973/PLV_RCA/')]
+        df[self.STENOSIS_SCORE_COLUMN] = df[self.STENOSIS_SCORE_COLUMN].apply(literal_eval)
+        self.df = df
+
+    def __detect_segments(self):
+        self.df[self.SEGMENT_ID_COLUMN] = self.df[self.IMG_PATH_COLUMN].str.split("/").\
+            apply(lambda x: x[-1].rsplit("_", maxsplit=1)[0]).factorize()[0]
+
+    def __find_labels(self):
+        mapper = {}
+        for group, values in self.config['groups'].items():
+            for value in values:
+                mapper[value] = group
+        self.df[self.LABEL_COLUMN] = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x]))
+        self.labels = self.df.groupby(by=self.SEGMENT_ID_COLUMN)[self.LABEL_COLUMN].max().tolist()
+
+    def __len__(self):
+        # TODO: Add image length
+        return len(self.df[self.SEGMENT_ID_COLUMN].unique())
+
+    def __getitem__(self, idx):
+        # TODO: Add image mask
+        mask = self.df[self.SEGMENT_ID_COLUMN] == idx
+        df_masked = self.df[mask]
+
+        img_pathes = df_masked[self.IMG_PATH_COLUMN]
+        images = []
+        seed = time.time()
+        for img_path in img_pathes:
+            img_path = os.path.join(self.root_dir, self.partition, img_path)
+            img = cv2.imread(img_path)
+
+            if self.augmentation:
+                random.seed(seed)
+                img = self.augmentation(img)
+
+            if self.transform:
+                img = self.transform(img)
+            images.append(img)
+        images = torch.stack(images)
+
+        y = self.labels[idx]
+        viewpoint_indexes = torch.tensor(df_masked[self.VIEWPOINT_INDEX_COLUMN][mask].tolist())
+        X = images[viewpoint_indexes.argsort()]
+
+        return X, y
+
 
 if __name__ == '__main__':
     # path_to_csv = 'labels.xlsx'

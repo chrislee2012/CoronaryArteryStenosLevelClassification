@@ -9,7 +9,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 import torch
 from torchvision import transforms
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
@@ -19,7 +18,7 @@ from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, M
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
 
-from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL
+from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL, MPR_Dataset_LSTM
 
 from tqdm import tqdm
 import yaml
@@ -73,6 +72,8 @@ class Trainer:
 
     def __load_model(self):
         mapping = self.__module_mapping('models')
+        if 'parameters' not in self.config['model']:
+            self.config['model']['parameters'] = {}
         self.config['model']['parameters']['n_classes'] = self.n_class
         self.model = mapping[self.config['model']['name']](**self.config['model']['parameters'])
 
@@ -122,13 +123,13 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
 
 
-        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
+        train_dataset = MPR_Dataset_LSTM(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
 
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
                                        batch_size=self.config["dataloader"]["batch_size"])
-        self.val_loaders = {partition: DataLoader(MPR_Dataset(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
-                batch_size=64) for partition in ["train", "val", "test"]}
+        self.val_loaders = {partition: DataLoader(MPR_Dataset_LSTM(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
+                batch_size=2) for partition in ["train", "val", "test"]}
 
     def __create_pbar(self):
         self.desc = "ITERATION - loss: {:.2f}"
@@ -148,7 +149,7 @@ class Trainer:
                 self.pbar.desc = self.desc.format(engine.state.output)
                 self.pbar.update(10)
 
-        def log_results(engine, partition):
+        def log_results(engine, partition, clean_last=False):
             self.pbar.refresh()
             self.evaluator.run(self.val_loaders[partition])
             metrics = self.evaluator.state.metrics
@@ -164,22 +165,26 @@ class Trainer:
                     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
                     self.writer.add_images("epoch/confusion_matrix/{}".format(partition), data, dataformats='HWC')
 
+
             results = " ".join(["Avg {}: {:.2f}".format(name, metrics[name]) for name in metrics if name != "confusion_matrix"])
             tqdm.write("{} Results - Epoch: {} {}".format(partition.capitalize(), engine.state.epoch, results))
-        
+
+            if clean_last:
+                self.pbar.n = self.pbar.last_print_n = 0
+
         def eval_func(engine, partition):
             self.val_eval.run(self.val_loaders[partition])
 
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "train")
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "val")
-        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "test")
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, log_results, "test", True)
         
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, eval_func, 'val')
 
-        # create LR_scheduler
-        step_scheduler = StepLR(self.optimizer, step_size=5, gamma=0.1)
+        # TODO: Create LR_scheduler
+        step_scheduler = StepLR(self.optimizer, step_size=1, gamma=0.1)
         self.scheduler = LRScheduler(step_scheduler)
-        self.trainer.add_event_handler(Events.EPOCH_STARTED, self.scheduler)
+        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self.scheduler)
 
 
     def __create_evaluator(self):

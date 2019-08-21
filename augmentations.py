@@ -38,9 +38,7 @@ class MediumAug:
 class MediumAugFixed:
     def __init__(self, p=0.6):
         self.p = p
-
-    def __call__(self, x):
-        return Compose([
+        self.augmentation = Compose([
             Transpose(),
             ShiftScaleRotate(shift_limit=0.06, scale_limit=0.1, rotate_limit=10, p=0.3),
             OneOf([
@@ -48,8 +46,23 @@ class MediumAugFixed:
                 MedianBlur(blur_limit=3, p=0.1),
                 Blur(blur_limit=3, p=0.1),
             ], p=0.2),
-        ], p=self.p)(image=x)['image']
+        ], p=self.p)
 
+    def __call__(self, x):
+        return self.augmentation(image=x)['image']
+
+class SafeAug:
+    def __init__(self, p=0.6):
+        self.p = p
+        self.augmentation = Compose([
+            HorizontalFlip(),
+            Transpose(),
+            ShiftScaleRotate(shift_limit=0.06, scale_limit=0.1, rotate_limit=5, p=0.3),
+            RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.3),
+        ], p=self.p)
+
+    def __call__(self, x):
+        return self.augmentation(image=x)['image']
 
 class StrongAugFixed:
     def __init__(self, p=0.6):
