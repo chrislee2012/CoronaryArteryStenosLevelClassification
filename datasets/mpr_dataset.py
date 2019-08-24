@@ -188,13 +188,13 @@ class MPR_Dataset_LSTM(Dataset):
 
         img_pathes = df_masked[self.IMG_PATH_COLUMN]
         images = []
-        seed = time.time()
+        state = random.getstate()
         for img_path in img_pathes:
             img_path = os.path.join(self.root_dir, self.partition, img_path)
             img = cv2.imread(img_path)
 
             if self.augmentation:
-                random.seed(seed)
+                random.setstate(state)
                 img = self.augmentation(img)
 
             if self.transform:

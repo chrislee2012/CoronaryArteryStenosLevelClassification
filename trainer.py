@@ -1,8 +1,12 @@
 import logging
+import random
+
 import warnings
 import inspect
 import importlib
 import os
+
+from engines import create_supervised_trainer
 
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -15,7 +19,7 @@ from torch.optim.lr_scheduler import StepLR
 
 from ignite.contrib.handlers.param_scheduler import LRScheduler
 from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
 
 from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL, MPR_Dataset_LSTM
@@ -28,10 +32,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+torch.backends.cudnn.benchmark = False  ##uses the inbuilt cudnn auto-tuner to find the fastest convolution algorithms. -
+torch.backends.cudnn.enabled = True
+torch.backends.cudnn.deterministic = True
+
 
 class Trainer:
     def __init__(self, config):
         self.config = config
+
+        self.__set_seed()
 
         os.makedirs(self.config['experiments_path'], exist_ok=True)
         self.id = len(os.listdir(self.config['experiments_path'])) + 1
@@ -53,11 +63,20 @@ class Trainer:
         self.__create_evaluator()
         self.__create_trainer()
 
+    def __set_seed(self):
+        seed = self.config["random_state"]
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+
     def __module_mapping(self, module_name):
         mapping = {}
         for name, obj in inspect.getmembers(importlib.import_module(module_name), inspect.isclass):
             mapping[name] = obj
         return mapping
+
 
     def __load_tensorboad(self):
         self.writer = SummaryWriter(log_dir=os.path.join(self.path, "logs"), flush_secs=30)
@@ -139,7 +158,8 @@ class Trainer:
         )
 
     def __create_trainer(self):
-        self.trainer = create_supervised_trainer(self.model, self.optimizer, self.loss, device=self.device)
+        self.trainer = create_supervised_trainer(self.model, self.optimizer, self.loss, device=self.device,
+                                                 accumulation_steps=self.config['dataloader']['accumulation_steps'])
 
         @self.trainer.on(Events.ITERATION_COMPLETED)
         def log_training_loss(engine):
@@ -182,9 +202,9 @@ class Trainer:
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, eval_func, 'val')
 
         # TODO: Create LR_scheduler
-        step_scheduler = StepLR(self.optimizer, step_size=1, gamma=0.1)
-        self.scheduler = LRScheduler(step_scheduler)
-        self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self.scheduler)
+        # step_scheduler = StepLR(self.optimizer, step_size=1, gamma=0.1)
+        # self.scheduler = LRScheduler(step_scheduler)
+        # self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self.scheduler)
 
 
     def __create_evaluator(self):

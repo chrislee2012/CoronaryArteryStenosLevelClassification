@@ -58,7 +58,7 @@ class SafeAug:
             HorizontalFlip(),
             Transpose(),
             ShiftScaleRotate(shift_limit=0.06, scale_limit=0.1, rotate_limit=5, p=0.3),
-            RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.3),
+            # RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.3),
         ], p=self.p)
 
     def __call__(self, x):

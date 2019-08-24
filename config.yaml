@@ -1,15 +1,16 @@
 experiments_path: experiments/
 device: cuda
+random_state: 42
 
 dataloader:
   batch_size: 3
   sampler: BalancedBatchSampler
+  accumulation_steps: 3
 
 data:
   root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv
   filters:
     arteries: [ 'LAD', 'D-1', 'D-2', 'D-3', 'PLV_RCA', 'LCX',  'OM-2', 'RCA', 'PLV_LCX', 'OM-3', 'PDA_LCX','OM-1', 'OM' ]
-    #arteries: ['OM-1']
     viewpoint_index_step: 3
   groups:
     0: [ 'NORMAL','-']
@@ -26,10 +27,9 @@ model:
 #    pretrained: true
 
 optimizer:
-  name: SGD
+  name: Adam
   parameters:
-    lr: 0.01
-    momentum: 0.9
+    lr: 0.0001
 
 loss:
   name: CrossEntropyLoss
