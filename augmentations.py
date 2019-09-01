@@ -51,6 +51,7 @@ class MediumAugFixed:
     def __call__(self, x):
         return self.augmentation(image=x)['image']
 
+
 class SafeAug:
     def __init__(self, p=0.6):
         self.p = p

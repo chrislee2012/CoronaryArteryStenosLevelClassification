@@ -15,7 +15,7 @@ from sklearn.metrics import f1_score, accuracy_score, balanced_accuracy_score, \
 from utils.print_pretty_confusion_matrix import plot_confusion_matrix_from_data 
 sys.path.insert(0, 'datasets/')
 
-from binary_data_loader import LAD_MPR_Loader
+# from binary_data_loader import LAD_MPR_Loader
 from estimate_model import *
 from os.path import join
 import re
@@ -25,11 +25,9 @@ import cv2
 
 def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     """
-<<<<<<< HEAD
     Calculate final auc and f1 metrics on three levels: per patient, per section and per artery
     :return: {dict} each metric as a key and its calculated metric as a value
-=======
->>>>>>> refactor
+
     """
     assert len(col_section) == len(col_ids) == len(col_preds) == len(col_labels)
 
@@ -44,10 +42,8 @@ def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     df['artery'] = df['section'].apply(lambda x: [k for k in dict_artery.keys() if x in dict_artery[k]][0])
 
     # Calculating accuracy for each level
-<<<<<<< HEAD
     for metric in ['section', 'patient', 'artery']:
         predictions = df[['preds', 'labels', metric]].groupby(metric).agg(lambda x: x.value_counts().index[0])
-=======
     # PATIENT GENERAL
     predictions = df[['preds', 'labels', 'patient']].groupby('patient').agg(lambda x: x.value_counts().index[0])
     acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
@@ -57,7 +53,7 @@ def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     for metric in ['section', 'artery']:
         predictions = df[['preds', 'labels', 'patient', metric]].groupby(['patient', metric]).agg(
             lambda x: x.value_counts().index[0])
->>>>>>> refactor
+
         acc = accuracy_score(predictions['preds'].values, predictions['labels'].values)
         f1 = f1_score(predictions['preds'].values, predictions['labels'].values)
         metrics['ACC_{}'.format(metric)] = acc
@@ -66,10 +62,9 @@ def calculate_metrics(col_section, col_ids, col_preds, col_labels):
     return metrics
 
 
-def label_predictions_to_images(partition, path_model, df, type_pred):
+def label_predictions_to_images(partition, path_model, df, type_pred, p_data):
     """Draw predictions and labels on images and saves to trained model's folder"""
     
-    p_data = 'data/binary_classification_only_lad/{}'.format(partition)
     folder_imag = path_model + '/images'
     folder_imag_correct = path_model + '/images/correct'
     folder_imag_mistakes = path_model + '/images/mistakes'

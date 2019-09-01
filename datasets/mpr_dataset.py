@@ -35,6 +35,7 @@ class MPR_Dataset(Dataset):
 
     def __load_data(self):
         df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
+        print(self.config['filters']["viewpoint_index_step"])
         df = df[
                     (df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
                     (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)
@@ -154,6 +155,17 @@ class MPR_Dataset_LSTM(Dataset):
         self.transform = transform
         self.augmentation = augmentation
 
+    # def __load_data(self):
+    #     df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
+    #     if 'filters' in self.config:
+    #         df = df[
+    #                     (df[self.ARTERY_COLUMN].isin(self.config['filters']["arteries"])) &
+    #                     (df[self.VIEWPOINT_INDEX_COLUMN] % self.config['filters']["viewpoint_index_step"] == 0)
+    #                ]
+    #     df = df[~df['IMG_PATH'].str.contains('CTCALEK24101973/PLV_RCA/')]
+    #     df[self.STENOSIS_SCORE_COLUMN] = df[self.STENOSIS_SCORE_COLUMN].apply(literal_eval)
+    #     self.df = df
+
     def __load_data(self):
         df = pd.read_csv(os.path.join(self.root_dir, self.partition, self.LABELS_FILENAME))
         if 'filters' in self.config:
@@ -163,7 +175,16 @@ class MPR_Dataset_LSTM(Dataset):
                    ]
         df = df[~df['IMG_PATH'].str.contains('CTCALEK24101973/PLV_RCA/')]
         df[self.STENOSIS_SCORE_COLUMN] = df[self.STENOSIS_SCORE_COLUMN].apply(literal_eval)
-        self.df = df
+
+        # Filter all stenosis score values which are in dataframe, but not included for training
+        mapper = {}
+        for group, values in self.config['groups'].items():
+            for value in values:
+                mapper[value] = group
+        temp = df[self.STENOSIS_SCORE_COLUMN].apply(
+            lambda x: np.mean([True if el in mapper.keys() else False for el in x]))
+        indeces = temp[temp == 1].index
+        self.df = df.ix[indeces]
 
     def __detect_segments(self):
         self.df[self.SEGMENT_ID_COLUMN] = self.df[self.IMG_PATH_COLUMN].str.split("/").\
@@ -174,6 +195,7 @@ class MPR_Dataset_LSTM(Dataset):
         for group, values in self.config['groups'].items():
             for value in values:
                 mapper[value] = group
+
         self.df[self.LABEL_COLUMN] = self.df[self.STENOSIS_SCORE_COLUMN].apply(lambda x: max([mapper[el] for el in x]))
         self.labels = self.df.groupby(by=self.SEGMENT_ID_COLUMN)[self.LABEL_COLUMN].max().tolist()
 
@@ -218,7 +240,8 @@ if __name__ == '__main__':
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
     data_loader = MPR_Dataset(root_dir, dataset_partition, transform=transform)
-    
+
+
     # for img, labels in data_loader:
     #     print(labels, img.shape)
     #     break
