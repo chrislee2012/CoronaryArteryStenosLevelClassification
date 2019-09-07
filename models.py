@@ -90,3 +90,27 @@ class LSTMDeepClassification(nn.Module):
             preds.append(res)
 
         return torch.cat(preds)
+
+
+class LSTMDeepResNetClassification(nn.Module):
+    def __init__(self, n_classes=3):
+        super(LSTMDeepResNetClassification, self).__init__()
+        backbone = models.resnet34(pretrained=True)
+        layers = list(backbone.children())
+        self.backbone = nn.Sequential(*layers[:-1])
+        self.embedding_dim = layers[-1].in_features
+        self.lstm = nn.LSTM(self.embedding_dim, 512, num_layers=2)
+        self.fc = nn.Linear(512, n_classes)
+
+    def forward(self, x):
+        preds = []
+
+        for i, segment_images in enumerate(x):
+            segment_features = self.backbone(segment_images)
+            segment_features = segment_features.mean([2, 3])
+            lstm_features, _ = self.lstm(segment_features.view(len(segment_features), 1, self.embedding_dim))
+            res = self.fc(lstm_features[-1])
+            preds.append(res)
+
+        return torch.cat(preds)
+
