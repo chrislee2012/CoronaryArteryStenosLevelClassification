@@ -9,7 +9,6 @@ import torch
 import pandas as pd
 from skimage import io, transform
 import numpy as np
-import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import cv2
@@ -240,8 +239,7 @@ if __name__ == '__main__':
                 # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
     data_loader = MPR_Dataset(root_dir, dataset_partition, transform=transform)
-
-
+#    print(len(data_loader))
     # for img, labels in data_loader:
     #     print(labels, img.shape)
     #     break
