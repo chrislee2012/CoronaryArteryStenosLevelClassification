@@ -1,40 +1,41 @@
-experiments_path: experiments/
+experiments_path: experiments_major_vote/
 device: cuda
 random_state: 42
 
 dataloader:
-  batch_size: 3
-  sampler: BalancedBatchSampler
-  accumulation_steps: 3
+  batch_size: 64
+  sampler: ImbalancedDatasetSampler
+  accumulation_steps: 1
 
 data:
-  root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv
+  root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv_h5
   filters:
     arteries: [ 'LAD', 'D-1', 'D-2', 'D-3', 'PLV_RCA', 'LCX',  'OM-2', 'RCA', 'PLV_LCX', 'OM-3', 'PDA_LCX','OM-1', 'OM' ]
-    viewpoint_index_step: 3
+    viewpoint_index_step: 2
   groups:
     0: [ 'NORMAL','-']
     1: ['<25%', '<35%', '25-50%', '25%', '<50%']
     #2: [ '70%', '50-70%', '70-90%', '90-100%', '>50%', '>70%', '90%', '>90%','75%', '>75%']
     2: ['50%', '70%','*50%', '50-70%', '70-90%', '90-100%', '>50%', '>70%', '90%', '>90%','75%', '>75%']
   augmentation:
-    name: SafeAug
+    name: MediumAugFixed
     parameters:
       p: 0.8
 
 model:
-  name: LSTMDeepClassification
-#  parameters:
-#    pretrained: true
+  name: ShuffleNetv2
+  parameters:
+    pretrained: true
 
 optimizer:
   name: Adam
   parameters:
-    lr: 0.00001
+    lr: 0.001
 
 loss:
-  name: CrossEntropyLoss
-
+  name: CrossEntropyLoss #OHEMLoss
+#  parameters:
+#    k: 40
 
 #    2: ['50%', '70%','*50%', '50-70%', '70-90%', '90-100%', '>50%', '>70%', '90%', '>90%','75%', '>75%']
 

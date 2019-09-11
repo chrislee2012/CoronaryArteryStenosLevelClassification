@@ -43,7 +43,7 @@ class MediumAugFixed:
             ShiftScaleRotate(shift_limit=0.06, scale_limit=0.1, rotate_limit=10, p=0.3),
             OneOf([
                 MotionBlur(p=.2),
-                MedianBlur(blur_limit=3, p=0.1),
+                # MedianBlur(blur_limit=3, p=0.1),
                 Blur(blur_limit=3, p=0.1),
             ], p=0.2),
         ], p=self.p)

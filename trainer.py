@@ -22,7 +22,7 @@ from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, M
 from ignite.engine import Events, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
 
-from datasets.mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL, MPR_Dataset_LSTM
+from datasets.mpr_dataset import MPR_Dataset, MPR_Dataset_STENOSIS_REMOVAL, MPR_Dataset_LSTM, MPR_Dataset_LSTM_H5, MPR_Dataset_H5
 
 from tqdm import tqdm
 import yaml
@@ -142,12 +142,12 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
 
 
-        train_dataset = MPR_Dataset_LSTM(root_dir, partition="train", config=self.config["data"], transform=transform,
+        train_dataset = MPR_Dataset_H5(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
 
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
                                        batch_size=self.config["dataloader"]["batch_size"])
-        self.val_loaders = {partition: DataLoader(MPR_Dataset_LSTM(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
+        self.val_loaders = {partition: DataLoader(MPR_Dataset_H5(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
                 batch_size=2) for partition in ["train", "val", "test"]}
 
     def __create_pbar(self):
