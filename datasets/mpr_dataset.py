@@ -119,7 +119,7 @@ class MPR_Dataset_H5(Dataset):
         # remove text
         X[X == X.max()] = X.min()
         # Segment
-        X = self.__primitive_segmentation(X)
+        # X = self.__primitive_segmentation(X)
         # convert to another range
         X = self.__scale(X, out_range=(0, 1))
         # X = np.interp(X, (X.min(), X.max()), (0, 1))
@@ -451,12 +451,21 @@ if __name__ == '__main__':
             augmentation = None
         return augmentation
 
+    def __load_sampler(sampler_name):
+        mapping = __module_mapping('samplers')
+        sampler = mapping[sampler_name]
+        return sampler
+
     transform = transforms.Compose([
         transforms.ToTensor(),
         # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     augmentation = __load_augmentation(config)
+    sampler= __load_sampler('ImbalancedDatasetSampler') # 
     dataset = MPR_Dataset_H5(root_dir, config=config["data"], augmentation=augmentation, transform=transform)
 
-    for img, label in dataset:
-        break
+    # print(np.unique(np.array(dataset.labels), return_counts=True))
+    train_loader = DataLoader(dataset, sampler=sampler(dataset), batch_size=6)
+
+    for img, label in train_loader:
+        print(label)

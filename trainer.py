@@ -21,6 +21,7 @@ from ignite.contrib.handlers.param_scheduler import LRScheduler
 from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
 from ignite.engine import Events, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
+from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
 
 from datasets.mpr_dataset import MPR_Dataset, MPR_Dataset_STENOSIS_REMOVAL, MPR_Dataset_LSTM, MPR_Dataset_LSTM_H5, MPR_Dataset_H5
 
@@ -142,12 +143,12 @@ class Trainer:
         root_dir = self.config["data"]["root_dir"]
 
 
-        train_dataset = MPR_Dataset_H5(root_dir, partition="train", config=self.config["data"], transform=transform,
+        train_dataset = MPR_Dataset(root_dir, partition="train", config=self.config["data"], transform=transform,
                                     augmentation=self.augmentation)
 
         self.train_loader = DataLoader(train_dataset, sampler=self.sampler(train_dataset),
                                        batch_size=self.config["dataloader"]["batch_size"])
-        self.val_loaders = {partition: DataLoader(MPR_Dataset_H5(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
+        self.val_loaders = {partition: DataLoader(MPR_Dataset(root_dir, partition=partition, config=self.config["data"], transform=transform), shuffle=False,
                 batch_size=2) for partition in ["train", "val", "test"]}
 
     def __create_pbar(self):
@@ -202,9 +203,10 @@ class Trainer:
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, eval_func, 'val')
 
         # TODO: Create LR_scheduler
-        # step_scheduler = StepLR(self.optimizer, step_size=1, gamma=0.1)
-        # self.scheduler = LRScheduler(step_scheduler)
-        # self.trainer.add_event_handler(Events.EPOCH_COMPLETED, self.scheduler)
+        self.scheduler = CosineAnnealingScheduler(self.optimizer, "lr", start_value=0.1, end_value=1e-3, cycle_size=1267*3, cycle_mult=1.2)
+
+        # self.scheduler = LRScheduler(scheduler_2)
+        self.trainer.add_event_handler(Events.ITERATION_STARTED, self.scheduler)
 
 
     def __create_evaluator(self):

@@ -2,7 +2,7 @@ import torch
 import torch.utils.data
 import torchvision
 import random
-from datasets.mpr_dataset import MPR_Dataset
+from mpr_dataset import MPR_Dataset
 
 
 class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
@@ -125,7 +125,7 @@ class BalancedBatchSampler(torch.utils.data.sampler.Sampler):
         self.keys = list(self.dataset.keys())
         self.currentkey = 0
         self.indices = [-1]*len(self.keys)
-
+        print(self.dataset)
     def __iter__(self):
         while self.indices[self.currentkey] < self.balanced_max - 1:
             self.indices[self.currentkey] += 1

@@ -13,7 +13,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 sys.path.insert(0, 'datasets/')
 
-from mpr_dataset import MPR_Dataset, MPR_DatasetSTENOSIS_REMOVAL, MPR_Dataset_LSTM
+from mpr_dataset import MPR_Dataset, MPR_Dataset_STENOSIS_REMOVAL, MPR_Dataset_LSTM, MPR_Dataset_H5
 from ast import literal_eval
 
 
@@ -42,11 +42,10 @@ def calculate_metrics(col_section, col_ids, col_preds, col_labels, f1_average='m
         'preds', col_labels.name: 'labels'})
     df['artery'] = df['section'].apply(lambda x: [k for k in dict_artery.keys() if x in dict_artery[k]][0])
 
+    print(df.tail())
     # SECTION
-    section_labels = df[['preds', 'labels', 'section', 'artery', 'patient']].groupby(['patient', 'section']).agg(
-        lambda x: max(x))
-    preds_section = df[['preds', 'labels', 'section', 'artery', 'patient']].groupby(['patient', 'section']).agg(
-        lambda x: x.value_counts().index[0])
+    section_labels = df[['preds', 'labels', 'section', 'artery', 'patient']].groupby(['patient', 'section']).agg(lambda x: max(x))
+    preds_section = df[['preds', 'labels', 'section', 'artery', 'patient']].groupby(['patient', 'section']).agg(lambda x: x.value_counts().index[0])
     acc = accuracy_score(preds_section['preds'], section_labels['labels'])
     f1 = f1_score(preds_section['preds'], section_labels['labels'], average=f1_average)
     metrics['ACC_section'], metrics['F1_section'] = acc, f1
@@ -88,7 +87,7 @@ def create_model(model_name, path_to_weigths, device):
     - LSTMDeepResNetClassification
     """
     mapping = __module_mapping('models')
-    model = mapping[model_name]()
+    model = mapping[model_name](n_classes=3)
     model.load_state_dict(torch.load(path_to_weigths))
     model.eval()
     model.to(device)
@@ -99,8 +98,8 @@ def create_dataloaders(config):
     transform = transforms.Compose([
         transforms.ToTensor(),
     ])
-    loaders = {partition: DataLoader(MPR_Dataset_LSTM(root_dir, partition=partition, config=config["data"], transform=transform), shuffle=False,
-                batch_size=2) for partition in ["train", "val", "test"]}
+    loaders = {partition: DataLoader(MPR_Dataset_H5(root_dir, partition=partition, config=config["data"], transform=transform), shuffle=False,
+                batch_size=4) for partition in ["train", "val", "test"]}
     return loaders
 
 
@@ -114,26 +113,35 @@ if __name__ == '__main__':
        config = yaml.load(f, Loader=yaml.FullLoader)
 
     device = 'cuda'
-    model = create_model('LSTMDeepClassification', '/home/maria/CoronaryArteryMaster/experiments/exp1/models/model_model_8_val_f1=0.4594017.pth', device)
+    model = create_model('ShuffleNetv2', '/home/petryshak/CoronaryArteryPlaqueIdentification/experiments_major_vote/exp20/models/model_model_7_val_f1=0.5650427.pth', device)
     loaders = create_dataloaders(config)
     predictions = [] 
 
     for partition_name in ['test']:
-        for step, (x, y) in enumerate(tqdm(loaders[partition_name])):
-            x = x.to(device)
-            y = y.to(device)
-            output = model(x)
-            _, predicted = torch.max(output, 1)
+        with torch.no_grad():
+            
+            for step, (x, y) in enumerate(tqdm(loaders[partition_name])):
+                x = x.to(device)
+                y = y.to(device)
+                output = model(x)
+                _, predicted = torch.max(output, 1)
 
-            l = []
-            for i in range(len(predicted.cpu().detach().numpy())):
-                for j in range(50):
-                    l.append(predicted[i].cpu().detach().item())
-            predictions.extend(l)
-        p_test_df = pd.read_csv("/home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv/{}/labels.csv".format(partition_name))
+                # l = []
+                # for i in range(len(predicted.cpu().detach().numpy())):
+                #     for j in range(50):
+                #         l.append(predicted[i].cpu().detach().item())
+                # predictions.extend(l)
+                # print(predicted.cpu().detach().numpy())
+                predictions.extend(predicted.cpu().detach().numpy())
 
+        p_test_df = pd.read_csv("/home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv_h5/{}/labels.csv".format(partition_name))
+
+        print(len(predictions), p_test_df.shape)
         p_test_df = p_test_df[p_test_df['MPR_VIEWPOINT_INDEX']%1 == 0].reset_index()
+        predictions = [int(x) for x in predictions]
         p_test_df['PRED'] = pd.Series(predictions)
+        print(p_test_df['PRED'].isna().sum())
+        # print(p_test_df['PRED'])
         p_test_df["STENOSIS_SCORE"] = p_test_df["STENOSIS_SCORE"].apply(literal_eval)
         p_test_df['PATIENT'] = p_test_df['IMG_PATH'].apply(lambda s: s.split('/')[1])
         mapper = {}
