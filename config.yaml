@@ -3,7 +3,7 @@ device: cuda
 random_state: 42
 
 dataloader:
-  batch_size: 64
+  batch_size: 8
   sampler: ImbalancedDatasetSampler
   accumulation_steps: 1
 
@@ -11,7 +11,7 @@ data:
   root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv
   filters:
     arteries: [ 'LAD', 'D-1', 'D-2', 'D-3', 'PLV_RCA', 'LCX',  'OM-2', 'RCA', 'PLV_LCX', 'OM-3', 'PDA_LCX','OM-1', 'OM' ]
-    viewpoint_index_step: 2
+    viewpoint_index_step: 1
   groups:
     0: [ 'NORMAL','-']
     1: ['<25%', '<35%', '25-50%', '25%', '<50%']
@@ -23,7 +23,7 @@ data:
       p: 0.8
 
 model:
-  name: ShuffleNetv2
+  name: SeResNext50
   parameters:
     pretrained: true
 

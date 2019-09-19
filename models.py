@@ -1,6 +1,7 @@
 from torch import nn
 from torchvision import models
 import torch
+from pretrainedmodels import se_resnext50_32x4d
 
 class ResNet18(nn.Module):
     def __init__(self, n_classes=2, pretrained=True):
@@ -33,6 +34,19 @@ class ShuffleNetv2(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+class SeResNext50(nn.Module):
+
+    def __init__(self, n_classes=2, pretrained=True):
+        super(SeResNext50, self).__init__()
+        if pretrained:
+            self.model = se_resnext50_32x4d(pretrained='imagenet')
+        else:
+            self.model = se_resnext50_32x4d()
+        features_num = 204800#self.model.last_linear.in_features
+        self.model.last_linear = nn.Linear(features_num, n_classes)
+
+    def forward(self, x):
+        return self.model(x)
 
 class LSTMClassification(nn.Module):
     def __init__(self, n_classes=3):

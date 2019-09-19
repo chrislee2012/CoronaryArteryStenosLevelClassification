@@ -2,7 +2,7 @@ import torch
 import torch.utils.data
 import torchvision
 import random
-from mpr_dataset import MPR_Dataset
+from datasets.mpr_dataset import MPR_Dataset
 
 
 class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):

@@ -21,7 +21,7 @@ from ignite.contrib.handlers.param_scheduler import LRScheduler
 from ignite.metrics import Accuracy, Loss, Precision, Recall, ConfusionMatrix, MetricsLambda
 from ignite.engine import Events, create_supervised_evaluator
 from ignite.handlers import ModelCheckpoint
-from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler, LinearCyclicalScheduler
 
 from datasets.mpr_dataset import MPR_Dataset, MPR_Dataset_STENOSIS_REMOVAL, MPR_Dataset_LSTM, MPR_Dataset_LSTM_H5, MPR_Dataset_H5
 
@@ -203,10 +203,12 @@ class Trainer:
         self.trainer.add_event_handler(Events.EPOCH_COMPLETED, eval_func, 'val')
 
         # TODO: Create LR_scheduler
-        self.scheduler = CosineAnnealingScheduler(self.optimizer, "lr", start_value=0.1, end_value=1e-3, cycle_size=1267*3, cycle_mult=1.2)
+
+        # self.scheduler = CosineAnnealingScheduler(self.optimizer, "lr", start_value=0.1, end_value=1e-3, cycle_size=1267*3, cycle_mult=1.2)
+        # self.scheduler = LinearCyclicalScheduler(self.optimizer, 'lr', start_value=0.1,  end_value=1e-3, cycle_size=1267, cycle_mult=1.2)
 
         # self.scheduler = LRScheduler(scheduler_2)
-        self.trainer.add_event_handler(Events.ITERATION_STARTED, self.scheduler)
+        # self.trainer.add_event_handler(Events.ITERATION_STARTED, self.scheduler)
 
 
     def __create_evaluator(self):
