@@ -11,7 +11,23 @@ from pred_models import ShuffleNetv2
 
 class PatientPredictor(object):
 
+    """
+    Class for prediction the patient's MPR data. 
 
+    Args:
+        path_to_weights: path to the weights of the best model(best_model_shufflenetv2.pth)
+        device: device which use for neural network prediction
+
+    Example:
+        PATH = 'prediction_pipeline/DICOMOBJ/'
+        PATH_TO_WEIGHTS = 'best_model_shufflenetv2.pth'
+        
+        # create the instance of the class
+        patient_predictor = PatientPredictor(PATH_TO_WEIGHTS, device='cuda')
+
+        # get the predictions for each branch of the coronary artery for the given patient
+        patient_predictor.predict(PATH_TO_THE_PATIENT_DICOM_FILES)
+    """
     def __init__(self, path_to_weighs, device='cpu'):
 
         # ToDo parametrize model
@@ -23,6 +39,15 @@ class PatientPredictor(object):
 
 
     def predict(self, path_to_patient_dcms):
+        """
+        Predicts the stenosis score for the given patient per branch
+
+        Args:
+            path_to_patient_dcms: path to the patient dicom files
+
+        Returns:
+            dict: key(name of the artery branch) - value(predicted class for that branch)
+        """
         loader = self.create_patient_loader(path_to_patient_dcms)
         predictions = {}
 
@@ -41,8 +66,8 @@ class PatientPredictor(object):
         return predictions
 
 
-    def create_patient_loader(self, path_to_data):
-        patient_dict = PatientDataStructure(path_to_data).dict_dataset
+    def create_patient_loader(self, path_to_patient_dcms):
+        patient_dict = PatientDataStructure(path_to_patient_dcms).dict_dataset
 
         transform = transforms.Compose([
             transforms.ToTensor(),
