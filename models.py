@@ -1,7 +1,9 @@
 from torch import nn
 from torchvision import models
 import torch
-from pretrainedmodels import se_resnext50_32x4d
+# from pretrainedmodels import se_resnext50_32x4d
+import torch.nn.functional as F
+
 
 class ResNet18(nn.Module):
     def __init__(self, n_classes=2, pretrained=True):
@@ -34,19 +36,19 @@ class ShuffleNetv2(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-class SeResNext50(nn.Module):
-
-    def __init__(self, n_classes=2, pretrained=True):
-        super(SeResNext50, self).__init__()
-        if pretrained:
-            self.model = se_resnext50_32x4d(pretrained='imagenet')
-        else:
-            self.model = se_resnext50_32x4d()
-        features_num = 204800#self.model.last_linear.in_features
-        self.model.last_linear = nn.Linear(features_num, n_classes)
-
-    def forward(self, x):
-        return self.model(x)
+# class SeResNext50(nn.Module):
+#
+#     def __init__(self, n_classes=2, pretrained=True):
+#         super(SeResNext50, self).__init__()
+#         if pretrained:
+#             self.model = se_resnext50_32x4d(pretrained='imagenet')
+#         else:
+#             self.model = se_resnext50_32x4d()
+#         features_num = 204800#self.model.last_linear.in_features
+#         self.model.last_linear = nn.Linear(features_num, n_classes)
+#
+#     def forward(self, x):
+#         return self.model(x)
 
 class LSTMClassification(nn.Module):
     def __init__(self, n_classes=3):
@@ -128,3 +130,82 @@ class LSTMDeepResNetClassification(nn.Module):
 
         return torch.cat(preds)
 
+
+# class AttentionV2(nn.Module):
+#     def __init__(self, n=2048, out_channels=3862, *args, **kwargs):
+#         super(AttentionV2, self).__init__()
+#         model = Model13(n=n, out_channels=out_channels, *args, **kwargs)
+#         model.load_state_dict(torch.load("experiments/default_mean_no_sched_3862/stage1/loss.h5")["model"])
+#         self.audio = model.audio
+#         self.img = model.img
+#         self.cat = nn.Sequential(*list(model.cat)[:-1])
+#         self.M = 2048
+#         self.L = 1024
+#
+#         self.attention = nn.Sequential(
+#             nn.Linear(self.M, self.L, bias=False),
+#             nn.Tanh(),
+#             nn.Linear(self.L, 1, bias=False),
+#             nn.Softmax(1)
+#         )
+#
+#         self.classifier = nn.Sequential(
+#             nn.Linear(self.M, out_channels),
+#         )
+#
+#         # self.attention.apply(init_weights)
+#
+#     def extractor(self, audio, img):
+#         audio = self.audio(audio)
+#         img = self.img(img)
+#         cat = torch.cat([audio, img], dim=1)
+#         # print(self.cat)
+#         cat = self.cat(cat)
+#         return cat
+#
+#     def forward(self, audio, img):
+#         B = audio.size(0)
+#         audio = audio.view(-1, 128)
+#         img = img.view(-1, 1024)
+#         features = self.extractor(audio, img)
+#         features = features.view(B, 5, -1)
+#         attention = self.attention(features)
+#         out = (attention * features).sum(1)
+#         out = self.classifier(out)
+#         return out
+
+
+class AttentionResNet18(nn.Module):
+    def __init__(self, n_classes=3, pretrained=True):
+        super(AttentionResNet18, self).__init__()
+        self.M = 512
+        self.L = 512
+
+        backbone = models.resnet18(pretrained=pretrained)
+        layers = list(backbone.children())
+        extractor = nn.Sequential(*layers[:-1])
+
+        self.feature_extractor_part1 = extractor
+
+        self.attention = nn.Sequential(
+            nn.Linear(self.M, self.L, bias=False),
+            nn.Tanh(),
+            nn.Linear(self.L, 1, bias=False),
+            nn.Softmax(1)
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(self.M, n_classes),
+        )
+
+    def forward(self, x):
+        batch_size = x.size(0)
+        x = x.view(-1, x.size(2), x.size(3), x.size(4))
+        features = self.feature_extractor_part1(x)
+        features = features.view(batch_size, features.size(0), -1)
+
+        attention = self.attention(features)
+        out = (attention * features).sum(1)
+        out = self.classifier(out)
+
+        return out
