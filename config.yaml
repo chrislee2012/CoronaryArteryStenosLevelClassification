@@ -1,11 +1,11 @@
-experiments_path: experiments_major_vote/
+experiments_path: experiments_mil/
 device: cuda
 random_state: 42
 
 dataloader:
   batch_size: 1
   sampler: ImbalancedDatasetSampler
-  accumulation_steps: 9
+  accumulation_steps: 12
 
 data:
   root_dir: /home/petryshak/CoronaryArteryPlaqueIdentification/data/all_branches_with_pda_plv
@@ -23,12 +23,12 @@ data:
       p: 0.8
 
 model:
-  name: AttentionResNet18
-#  parameters:
-#    pretrained: true
+  name: AttentionShuffleNetV2
+  parameters:
+    pretrained: True
 
 optimizer:
-  name: Adam
+  name: SGD
   parameters:
     lr: 0.0001
 
